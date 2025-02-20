@@ -1,4 +1,4 @@
-﻿namespace VectorCircle;
+﻿namespace VectorSphere;
 
 internal struct Vector3(int x, int y, int z)
 {

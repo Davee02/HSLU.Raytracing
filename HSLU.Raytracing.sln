@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleCircle", "src\SimpleC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorCircle", "src\VectorCircle\VectorCircle.csproj", "{98637197-14BB-4147-81DA-46458340944A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorSphere", "src\VectorSphere\VectorSphere.csproj", "{C53078C9-DCAF-4CC7-8F46-A06C33357D25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{98637197-14BB-4147-81DA-46458340944A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98637197-14BB-4147-81DA-46458340944A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98637197-14BB-4147-81DA-46458340944A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C53078C9-DCAF-4CC7-8F46-A06C33357D25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C53078C9-DCAF-4CC7-8F46-A06C33357D25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C53078C9-DCAF-4CC7-8F46-A06C33357D25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C53078C9-DCAF-4CC7-8F46-A06C33357D25}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -37,5 +43,6 @@ Global
 		{BE07832E-D656-4730-93F5-D9F9773733DB} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
 		{23DB9070-49F5-4EB1-BAE8-EF8BB5444E9F} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
 		{98637197-14BB-4147-81DA-46458340944A} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
+		{C53078C9-DCAF-4CC7-8F46-A06C33357D25} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
 	EndGlobalSection
 EndGlobal
