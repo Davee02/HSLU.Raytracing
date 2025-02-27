@@ -1,5 +1,5 @@
 ﻿using SkiaSharp;
-using VectorCircle;
+using Common;
 
 const int width = 800;
 const int height = 500;

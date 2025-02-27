@@ -1,7 +1,7 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using VectorSphere;
-using static System.Net.Mime.MediaTypeNames;
+using Common;
+using Color = SixLabors.ImageSharp.Color;
 
 const int width = 800;
 const int height = 500;
