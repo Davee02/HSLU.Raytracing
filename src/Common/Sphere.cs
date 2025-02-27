@@ -8,7 +8,7 @@
 
         public Color Color { get; } = color;
 
-        public bool Intersect(Ray ray, out double lambda)
+        public bool Intersect(Ray ray, out float lambda)
         {
             lambda = 0;
 
@@ -22,11 +22,11 @@
                 return false;
             }
 
-            var sqrtDiscriminant = Math.Sqrt(discriminant);
+            var sqrtDiscriminant = MathF.Sqrt(discriminant);
 
             var lambda1 = (-b + sqrtDiscriminant) / (2 * a);
             var lambda2 = (-b - sqrtDiscriminant) / (2 * a);
-            lambda = Math.Min(lambda1, lambda2);
+            lambda = MathF.Min(lambda1, lambda2);
 
             return true;
         }

@@ -32,7 +32,7 @@ bitmap.ProcessPixelRows(accessor =>
             var ray = new Ray(new Vector3(x, y, 0), rayDirection);
             var color = background;
 
-            double? closestLambda = null;
+            float? closestLambda = null;
             Sphere closestSphere = default;
 
             foreach (var sphere in spheres)
