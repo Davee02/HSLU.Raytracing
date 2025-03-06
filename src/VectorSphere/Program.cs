@@ -15,8 +15,8 @@ var sphereCenter = new Vector3(sphereCenterX, sphereCenterY, sphereCenterZ);
 
 static bool IsInSphere(Vector2 pixel, Vector3 sphereCenter, int radius)
 {
-    int dx = pixel.X - sphereCenter.X;
-    int dy = pixel.Y - sphereCenter.Y;
+    float dx = pixel.X - sphereCenter.X;
+    float dy = pixel.Y - sphereCenter.Y;
 
     return (dx * dx + dy * dy) <= Math.Pow(radius, 2);
 }

@@ -22,11 +22,7 @@
                 return false;
             }
 
-            var sqrtDiscriminant = MathF.Sqrt(discriminant);
-
-            var lambda1 = (-b + sqrtDiscriminant) / (2 * a);
-            var lambda2 = (-b - sqrtDiscriminant) / (2 * a);
-            lambda = MathF.Min(lambda1, lambda2);
+            lambda = (-b - MathF.Sqrt(discriminant)) / (2 * a); // we can always choose the smaller lambda as the intersection point
 
             return true;
         }

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultipleCircles", "src\Mult
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultipleSpheres", "src\MultipleSpheres\MultipleSpheres.csproj", "{FEF9BEF8-35E5-4D40-B136-E7B082B65AB0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RayTracer", "src\RayTracer\RayTracer.csproj", "{2DE53446-71D7-47CB-8806-48F967089835}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{FEF9BEF8-35E5-4D40-B136-E7B082B65AB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEF9BEF8-35E5-4D40-B136-E7B082B65AB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEF9BEF8-35E5-4D40-B136-E7B082B65AB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DE53446-71D7-47CB-8806-48F967089835}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DE53446-71D7-47CB-8806-48F967089835}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DE53446-71D7-47CB-8806-48F967089835}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DE53446-71D7-47CB-8806-48F967089835}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,6 +71,7 @@ Global
 		{09B4B157-972A-4DA2-8D4E-F6521CB12887} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
 		{30722F23-357F-435C-BEB8-E4EDF36A68BA} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
 		{FEF9BEF8-35E5-4D40-B136-E7B082B65AB0} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
+		{2DE53446-71D7-47CB-8806-48F967089835} = {87DF9E5C-3DAE-443D-943E-820AA167A6B8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0883A572-2F12-40FF-A386-7AF49AFF127B}
