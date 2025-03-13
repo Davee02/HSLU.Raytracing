@@ -13,6 +13,8 @@ namespace Common
 
         public List<Sphere> Spheres { get; } = [];
 
+        public List<Triangle> Triangles { get; } = [];
+
         public Light DiffusedLight { get; set; }
 
         public Light AmbientLight { get; set; }
@@ -21,11 +23,22 @@ namespace Common
 
         public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>(width, height);
 
-        public readonly void AddObject(Sphere sphere) => Spheres.Add(sphere);
+        public readonly void AddSphere(Sphere sphere) => Spheres.Add(sphere);
 
-        public void Dispose()
+        public readonly void AddTriangle(Triangle triangle) => Triangles.Add(triangle);
+
+        public readonly void AddRectangle(Rectangle rectangle)
         {
-            Bitmap?.Dispose();
+            AddTriangle(rectangle.Triangle1);
+            AddTriangle(rectangle.Triangle2);
+        }
+
+        public readonly void AddCube(Cube cube)
+        {
+            foreach (var triangle in cube.Triangles)
+            {
+                AddTriangle(triangle);
+            }
         }
 
         public void GenerateRandomSpheres(int num)
@@ -36,8 +49,13 @@ namespace Common
                 var center = new Vector3(random.Next(0, Width), random.Next(0, Height), random.Next(50, 200));
                 var radius = random.Next(10, 100);
                 var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
-                AddObject(new Sphere(center, radius, color));
+                AddSphere(new Sphere(center, radius, color));
             }
+        }
+
+        public void Dispose()
+        {
+            Bitmap?.Dispose();
         }
     }
 }
