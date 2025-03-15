@@ -15,6 +15,8 @@ namespace Common
 
         public List<Triangle> Triangles { get; } = [];
 
+        public List<ITraceableObject> TraceableObjects { get; } = [];
+
         public Light DiffusedLight { get; set; }
 
         public Light AmbientLight { get; set; }
@@ -23,9 +25,19 @@ namespace Common
 
         public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>(width, height);
 
-        public readonly void AddSphere(Sphere sphere) => Spheres.Add(sphere);
+        public readonly void AddSphere(Sphere sphere) 
+        {
+            Spheres.Add(sphere);
+            TraceableObjects.Add(sphere);
+        }
 
-        public readonly void AddTriangle(Triangle triangle) => Triangles.Add(triangle);
+
+        public readonly void AddTriangle(Triangle triangle)
+        {
+            TraceableObjects.Add(triangle);
+            Triangles.Add(triangle);
+        }
+
 
         public readonly void AddRectangle(Rectangle rectangle)
         {
@@ -51,6 +63,32 @@ namespace Common
                 var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
                 AddSphere(new Sphere(center, radius, color));
             }
+        }
+
+        public void GenerateRandomCubes(int num)
+        {
+            var random = new Random();
+            for (int i = 0; i < num; i++)
+            {
+                var center = new Vector3(random.Next(0, Width), random.Next(0, Height), random.Next(50, 200));
+                var size = random.Next(10, 100);
+                var xRotation = random.Next(0, 180);
+                var yRotation = random.Next(0, 180);
+                var zRotation = random.Next(0, 180);
+                var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
+                AddCube(new Cube(center, size, new Vector3(xRotation, yRotation, zRotation), color));
+            }
+        }
+
+        public Color ComputeLighting(Vector3 intersectionPoint, Vector3 surfaceNormal, Color objectColor)
+        {
+            var lightDirection = (DiffusedLight.Position - intersectionPoint).Normalize();
+            var diffuseFactor = Math.Max(0, lightDirection.ScalarProduct(surfaceNormal));
+
+            var diffuseLight = DiffusedLight.Color * diffuseFactor * objectColor;
+            var ambientLight = AmbientLight.Color * AmbientLight.Intensity * objectColor;
+
+            return diffuseLight + ambientLight;
         }
 
         public void Dispose()

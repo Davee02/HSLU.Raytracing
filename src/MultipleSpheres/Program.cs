@@ -15,6 +15,7 @@ var spheres = new Sphere[]
     new (new Vector3(300, 200, 100), 50, new Common.Color(0, 1, 0)),
     new (new Vector3(400, 200, 190), 150, new Common.Color(0, 0, 1)),
     new (new Vector3(width, height, 200), 400, new Common.Color(1, 1, 1)),
+    new (new Vector3(width, height, 200), 400, new Common.Color(1, 1, 1)),
 };
 
 // Create a SkiaSharp bitmap (raster surface)

@@ -1,72 +1,103 @@
-﻿namespace Common
+﻿using System.Numerics;
+
+namespace Common
 {
     public readonly struct Cube
     {
-        private readonly Triangle[] _triangles;
+        private readonly Triangle[] _triangles = new Triangle[12];
+
+        public IReadOnlyList<Triangle> Triangles => _triangles;
 
         /// <summary>
         /// Constructs a cube starting at <paramref name="origin"/> 
-        /// with each edge of length <paramref name="size"/>.
+        /// with each edge of length <paramref name="sideLength"/>.
         /// All faces have the same <paramref name="color"/>.
+        /// Yaw (rotation around the Y axis), pitch (X axis), and roll (Z axis) are defined in the vector <paramref name="rotationAnglesDegrees"/>.
         /// </summary>
-        public Cube(Vector3 origin, float size, Color color)
+        public Cube(Vector3 origin, float sideLength, Vector3 rotationAnglesDegrees, Color color)
         {
-            // Define the eight corners of the cube
-            //    p0-------p1
-            //     |        |
-            //     |        |
-            //    p2-------p3   (z=0 plane)
-            //
-            //    p4-------p5
-            //     |        |
-            //     |        |
-            //    p6-------p7   (z=size plane)
-            //
-            var p0 = origin;
-            var p1 = origin + new Vector3(size, 0, 0);
-            var p2 = origin + new Vector3(0, size, 0);
-            var p3 = origin + new Vector3(size, size, 0);
-            var p4 = origin + new Vector3(0, 0, size);
-            var p5 = origin + new Vector3(size, 0, size);
-            var p6 = origin + new Vector3(0, size, size);
-            var p7 = origin + new Vector3(size, size, size);
+            var rotationAnglesRadians = new Vector3(
+                rotationAnglesDegrees.X.ToRadians(),
+                rotationAnglesDegrees.Y.ToRadians(),
+                rotationAnglesDegrees.Z.ToRadians());
 
-            // Build each face as two triangles
-            // Front face (z=0 plane)
-            var frontA = new Triangle(p0, p1, p2, color);
-            var frontB = new Triangle(p1, p3, p2, color);
+            float x = origin.X;
+            float y = origin.Y;
+            float z = origin.Z;
+            float L = sideLength;
 
-            // Back face (z=size plane)
-            var backA = new Triangle(p4, p5, p6, color);
-            var backB = new Triangle(p5, p7, p6, color);
+            // Compute the center of the cube
+            var center = origin + new Vector3(sideLength / 2f, sideLength / 2f, sideLength / 2f);
 
-            // Left face (x=0 plane)
-            var leftA = new Triangle(p0, p2, p4, color);
-            var leftB = new Triangle(p2, p6, p4, color);
+            // Create a rotation matrix about the Y-axis (for example).
+            // You can also use CreateRotationX or CreateRotationZ, or a combination.
+            var rotationMatrix = Matrix4x4.CreateFromYawPitchRoll(rotationAnglesRadians.Y, rotationAnglesRadians.X, rotationAnglesRadians.Z);
 
-            // Right face (x=size plane)
-            var rightA = new Triangle(p1, p3, p5, color);
-            var rightB = new Triangle(p3, p7, p5, color);
+            // Helper function to rotate a vertex around the cube's center
+            Vector3 Rotate(Vector3 v)
+            {
+                // Step 1: translate to center-based coords
+                Vector3 translated = v - center;
 
-            // Top face (y=size plane)
-            var topA = new Triangle(p2, p3, p6, color);
-            var topB = new Triangle(p3, p7, p6, color);
+                // Step 2: apply rotation
+                Vector3 rotated = translated.Transform(rotationMatrix);
 
-            // Bottom face (y=0 plane)
-            var bottomA = new Triangle(p0, p1, p4, color);
-            var bottomB = new Triangle(p1, p5, p4, color);
+                // Step 3: translate back
+                return rotated + center;
+            }
 
-            _triangles =
-            [
-                frontA, frontB,
-                backA, backB,
-                leftA, leftB,
-                rightA, rightB,
-                topA, topB,
-                bottomA, bottomB
-            ];
+            // Define the 8 vertices of the cube.
+            // Assuming origin is the minimum corner (lowest x, y, z).
+            var v0 = new Vector3(x, y, z);
+            var v1 = new Vector3(x + L, y, z);
+            var v2 = new Vector3(x + L, y + L, z);
+            var v3 = new Vector3(x, y + L, z);
+            var v4 = new Vector3(x, y, z + L);
+            var v5 = new Vector3(x + L, y, z + L);
+            var v6 = new Vector3(x + L, y + L, z + L);
+            var v7 = new Vector3(x, y + L, z + L);
+
+            // Rotate each vertex
+            v0 = Rotate(v0);
+            v1 = Rotate(v1);
+            v2 = Rotate(v2);
+            v3 = Rotate(v3);
+            v4 = Rotate(v4);
+            v5 = Rotate(v5);
+            v6 = Rotate(v6);
+            v7 = Rotate(v7);
+
+            // Front face (face with z = z)
+            // Desired outward normal: (0, 0, 1)
+            // Use a clockwise ordering when viewed from the front.
+            _triangles[0] = new Triangle(v0, v1 - v0, v3 - v0, color);
+            _triangles[1] = new Triangle(v1, v2 - v1, v3 - v1, color);
+
+            // Back face (face with z = z + L)
+            // Desired outward normal: (0, 0, -1)
+            // Order the vertices clockwise when viewed from the back.
+            _triangles[2] = new Triangle(v4, v6 - v4, v5 - v4, color);
+            _triangles[3] = new Triangle(v4, v7 - v4, v6 - v4, color);
+
+            // Left face (face with x = x)
+            // Desired outward normal: (1, 0, 0)
+            _triangles[4] = new Triangle(v0, v3 - v0, v7 - v0, color);
+            _triangles[5] = new Triangle(v0, v7 - v0, v4 - v0, color);
+
+            // Right face (face with x = x + L)
+            // Desired outward normal: (-1, 0, 0)
+            _triangles[6] = new Triangle(v1, v5 - v1, v6 - v1, color);
+            _triangles[7] = new Triangle(v1, v6 - v1, v2 - v1, color);
+
+            // Top face (face with y = y + L)
+            // Desired outward normal: (0, -1, 0)
+            _triangles[8] = new Triangle(v3, v2 - v3, v6 - v3, color);
+            _triangles[9] = new Triangle(v3, v6 - v3, v7 - v3, color);
+
+            // Bottom face (face with y = y)
+            // Desired outward normal: (0, 1, 0)
+            _triangles[10] = new Triangle(v0, v4 - v0, v5 - v0, color);
+            _triangles[11] = new Triangle(v0, v5 - v0, v1 - v0, color);
         }
-
-        public IReadOnlyList<Triangle> Triangles => _triangles;
     }
 }

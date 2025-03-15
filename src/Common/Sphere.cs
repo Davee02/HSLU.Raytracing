@@ -1,6 +1,6 @@
 ﻿namespace Common
 {
-    public readonly struct Sphere(Vector3 center, float radius, Color color)
+    public readonly struct Sphere(Vector3 center, float radius, Color color) : ITraceableObject
     {
         public Vector3 Center { get; } = center;
 
@@ -16,6 +16,7 @@
             var a = ray.Direction.ScalarProduct(ray.Direction);
             var b = 2 * v.ScalarProduct(ray.Direction);
             var c = v.ScalarProduct(v) - (Radius * Radius);
+
             var discriminant = (b * b) - (4 * a * c);
             if (discriminant < 0)
             {
@@ -26,5 +27,7 @@
 
             return true;
         }
+
+        public Vector3 SurfaceNormal(Vector3 intersectionPoint) => (intersectionPoint - Center).Normalize();
     }
 }
