@@ -13,6 +13,8 @@ namespace Common
 
         public List<Sphere> Spheres { get; } = [];
 
+        public List<Plane> Planes { get; } = [];
+
         public List<Triangle> Triangles { get; } = [];
 
         public List<ITraceableObject> TraceableObjects { get; } = [];
@@ -29,6 +31,12 @@ namespace Common
         {
             Spheres.Add(sphere);
             TraceableObjects.Add(sphere);
+        }
+
+        public readonly void AddPlane(Plane plane)
+        {
+            Planes.Add(plane);
+            TraceableObjects.Add(plane);
         }
 
 
@@ -80,15 +88,20 @@ namespace Common
             }
         }
 
-        public Color ComputeLighting(Vector3 intersectionPoint, Vector3 surfaceNormal, Color objectColor)
+        public Color ComputeDiffusionColor(Vector3 intersectionPoint, Vector3 surfaceNormal, Color objectColor)
         {
             var lightDirection = (DiffusedLight.Position - intersectionPoint).Normalize();
             var diffuseFactor = Math.Max(0, lightDirection.ScalarProduct(surfaceNormal));
 
             var diffuseLight = DiffusedLight.Color * diffuseFactor * objectColor;
-            var ambientLight = AmbientLight.Color * AmbientLight.Intensity * objectColor;
+            
 
-            return diffuseLight + ambientLight;
+            return diffuseLight + ComputeAmbientColor(objectColor);
+        }
+
+        public Color ComputeAmbientColor(Color objectColor)
+        {
+            return AmbientLight.Color * AmbientLight.Intensity * objectColor;
         }
 
         public void Dispose()

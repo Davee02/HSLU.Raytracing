@@ -9,25 +9,25 @@ namespace Common
         public IReadOnlyList<Triangle> Triangles => _triangles;
 
         /// <summary>
-        /// Constructs a cube starting at <paramref name="origin"/> 
+        /// Constructs a cube starting at <paramref name="position"/> 
         /// with each edge of length <paramref name="sideLength"/>.
         /// All faces have the same <paramref name="color"/>.
         /// Yaw (rotation around the Y axis), pitch (X axis), and roll (Z axis) are defined in the vector <paramref name="rotationAnglesDegrees"/>.
         /// </summary>
-        public Cube(Vector3 origin, float sideLength, Vector3 rotationAnglesDegrees, Color color)
+        public Cube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Color color)
         {
             var rotationAnglesRadians = new Vector3(
                 rotationAnglesDegrees.X.ToRadians(),
                 rotationAnglesDegrees.Y.ToRadians(),
                 rotationAnglesDegrees.Z.ToRadians());
 
-            float x = origin.X;
-            float y = origin.Y;
-            float z = origin.Z;
+            float x = position.X;
+            float y = position.Y;
+            float z = position.Z;
             float L = sideLength;
 
             // Compute the center of the cube
-            var center = origin + new Vector3(sideLength / 2f, sideLength / 2f, sideLength / 2f);
+            var center = position + new Vector3(sideLength / 2f, sideLength / 2f, sideLength / 2f);
 
             // Create a rotation matrix about the Y-axis (for example).
             // You can also use CreateRotationX or CreateRotationZ, or a combination.
