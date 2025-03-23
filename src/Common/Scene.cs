@@ -3,13 +3,11 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Common
 {
-    public struct Scene(int width, int height, int depth) : IDisposable
+    public struct Scene(int width, int height) : IDisposable
     {
         public int Width { get; set; } = width;
 
         public int Height { get; set; } = height;
-
-        public int Depth { get; set; } = depth;
 
         public List<Sphere> Spheres { get; } = [];
 
@@ -20,6 +18,8 @@ namespace Common
         public List<ITraceableObject> TraceableObjects { get; } = [];
 
         public Light DiffusedLight { get; set; }
+
+        public Vector3 CameraPosition { get; set; }
 
         public Light AmbientLight { get; set; }
 
