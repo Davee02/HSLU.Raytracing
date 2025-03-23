@@ -25,7 +25,7 @@
 
             lambda = (-b - MathF.Sqrt(discriminant)) / (2 * a); // we can always choose the smaller lambda as the intersection point
 
-            return true;
+            return lambda > 0; // only consider intersections in front of the camera
         }
 
         public Vector3 SurfaceNormal(Vector3 intersectionPoint) => (intersectionPoint - Center).Normalize();
