@@ -17,7 +17,7 @@ namespace Common
 
         public List<ITraceableObject> TraceableObjects { get; } = [];
 
-        public Light DiffusedLight { get; set; }
+        public List<Light> DiffusedLights { get; set; } = [];
 
         public Vector3 CameraPosition { get; set; }
 
@@ -27,18 +27,25 @@ namespace Common
 
         public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>(width, height);
 
-        public readonly void AddSphere(Sphere sphere) 
+        public readonly void AddSphere(Vector3 center, float radius, Color color) 
         {
+            var sphere = new Sphere(center, radius, color);
             Spheres.Add(sphere);
             TraceableObjects.Add(sphere);
         }
 
-        public readonly void AddPlane(Plane plane)
+        public readonly void AddPlane(Vector3 position, Vector3 rotationAnglesDegrees, Color color)
         {
+            var plane = new Plane(position, rotationAnglesDegrees, color);
             Planes.Add(plane);
             TraceableObjects.Add(plane);
         }
 
+
+        public readonly void AddTriangle(Vector3 origin, Vector3 v, Vector3 w, Color color)
+        {
+            AddTriangle(new Triangle(origin, v, w, color));
+        }
 
         public readonly void AddTriangle(Triangle triangle)
         {
@@ -47,14 +54,16 @@ namespace Common
         }
 
 
-        public readonly void AddRectangle(Rectangle rectangle)
+        public readonly void AddRectangle(Vector3 origin, Vector3 w, Vector3 v, Color color)
         {
+            var rectangle = new Rectangle(origin, w, v, color);
             AddTriangle(rectangle.Triangle1);
             AddTriangle(rectangle.Triangle2);
         }
 
-        public readonly void AddCube(Cube cube)
+        public readonly void AddCube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Color color)
         {
+            var cube = new Cube(position, sideLength, rotationAnglesDegrees, color);
             foreach (var triangle in cube.Triangles)
             {
                 AddTriangle(triangle);
@@ -69,7 +78,7 @@ namespace Common
                 var center = new Vector3(random.Next(0, Width), random.Next(0, Height), random.Next(50, 200));
                 var radius = random.Next(10, 100);
                 var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
-                AddSphere(new Sphere(center, radius, color));
+                AddSphere(center, radius, color);
             }
         }
 
@@ -84,19 +93,26 @@ namespace Common
                 var yRotation = random.Next(0, 180);
                 var zRotation = random.Next(0, 180);
                 var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
-                AddCube(new Cube(center, size, new Vector3(xRotation, yRotation, zRotation), color));
+                AddCube(center, size, new Vector3(xRotation, yRotation, zRotation), color);
             }
         }
 
         public Color ComputeDiffusionColor(Vector3 intersectionPoint, Vector3 surfaceNormal, Color objectColor)
         {
-            var lightDirection = (DiffusedLight.Position - intersectionPoint).Normalize();
-            var diffuseFactor = Math.Max(0, lightDirection.ScalarProduct(surfaceNormal));
+            // Start with zero light contribution
+            var diffuseLight = new Color(0, 0, 0);
 
-            var diffuseLight = DiffusedLight.Color * diffuseFactor * objectColor;
-            
+            // Accumulate contributions from all diffused lights
+            foreach (var light in DiffusedLights)
+            {
+                var lightDirection = (light.Position - intersectionPoint).Normalize();
+                var diffuseFactor = Math.Max(0, lightDirection.ScalarProduct(surfaceNormal));
 
-            return diffuseLight + ComputeAmbientColor(objectColor);
+                // Add this light's contribution
+                diffuseLight += (light.Color * diffuseFactor * light.Intensity * objectColor);
+            }
+
+            return diffuseLight;
         }
 
         public Color ComputeAmbientColor(Color objectColor)

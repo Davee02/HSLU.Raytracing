@@ -4,6 +4,8 @@ namespace Common;
 
 public readonly struct Vector3(float x, float y, float z)
 {
+    public static Vector3 Zero { get; } = new(0, 0, 0);
+
     public readonly float X => x;
 
     public readonly float Y => y;
