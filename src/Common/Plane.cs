@@ -2,13 +2,13 @@
 
 namespace Common
 {
-    public readonly struct Plane(Vector3 position, Vector3 rotationAnglesDegrees, Color color) : ITraceableObject
+    public readonly struct Plane(Vector3 position, Vector3 rotationAnglesDegrees, Material material) : ITraceableObject
     {
         public Vector3 Position { get; } = position;
 
         public Vector3 Normal { get; } = CalculateNormal(rotationAnglesDegrees);
 
-        public Color Color { get; } = color;
+        public Material Material { get; } = material;
 
         private static Vector3 CalculateNormal(Vector3 rotationAnglesDegrees)
         {
@@ -56,7 +56,7 @@ namespace Common
             lambda -= ITraceableObject.eps; // move the intersection point a bit towards the camera to avoid self-intersection
 
             var intersectionPoint = ray.Origin + (ray.Direction * lambda);
-            hit = new Hit(intersectionPoint, Normal, Color, lambda);
+            hit = new Hit(intersectionPoint, Normal, Material, lambda);
 
             return true;
         }

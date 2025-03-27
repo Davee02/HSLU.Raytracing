@@ -28,24 +28,24 @@ namespace Common
 
         public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>(width, height);
 
-        public readonly void AddSphere(Vector3 center, float radius, Color color) 
+        public readonly void AddSphere(Vector3 center, float radius, Material color) 
         {
             var sphere = new Sphere(center, radius, color);
             Spheres.Add(sphere);
             TraceableObjects.Add(sphere);
         }
 
-        public readonly void AddPlane(Vector3 position, Vector3 rotationAnglesDegrees, Color color)
+        public readonly void AddPlane(Vector3 position, Vector3 rotationAnglesDegrees, Material material)
         {
-            var plane = new Plane(position, rotationAnglesDegrees, color);
+            var plane = new Plane(position, rotationAnglesDegrees, material);
             Planes.Add(plane);
             TraceableObjects.Add(plane);
         }
 
 
-        public readonly void AddTriangle(Vector3 origin, Vector3 v, Vector3 w, Color color)
+        public readonly void AddTriangle(Vector3 origin, Vector3 v, Vector3 w, Material material)
         {
-            AddTriangle(new Triangle(origin, v, w, color));
+            AddTriangle(new Triangle(origin, v, w, material));
         }
 
         public readonly void AddTriangle(Triangle triangle)
@@ -55,70 +55,25 @@ namespace Common
         }
 
 
-        public readonly void AddRectangle(Vector3 origin, Vector3 w, Vector3 v, Color color)
+        public readonly void AddRectangle(Vector3 origin, Vector3 w, Vector3 v, Material material)
         {
-            var rectangle = new Rectangle(origin, w, v, color);
+            var rectangle = new Rectangle(origin, w, v, material);
             AddTriangle(rectangle.Triangle1);
             AddTriangle(rectangle.Triangle2);
         }
 
-        public readonly void AddCube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Color color)
+        public readonly void AddCube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Material material)
         {
-            var cube = new Cube(position, sideLength, rotationAnglesDegrees, color);
+            var cube = new Cube(position, sideLength, rotationAnglesDegrees, material);
             foreach (var triangle in cube.Triangles)
             {
                 AddTriangle(triangle);
             }
         }
 
-        public void GenerateRandomSpheres(int num)
+        public Color ComputeAmbientColor(Material objectMaterial)
         {
-            var random = new Random();
-            for (int i = 0; i < num; i++)
-            {
-                var center = new Vector3(random.Next(0, Width), random.Next(0, Height), random.Next(50, 200));
-                var radius = random.Next(10, 100);
-                var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
-                AddSphere(center, radius, color);
-            }
-        }
-
-        public void GenerateRandomCubes(int num)
-        {
-            var random = new Random();
-            for (int i = 0; i < num; i++)
-            {
-                var center = new Vector3(random.Next(0, Width), random.Next(0, Height), random.Next(50, 200));
-                var size = random.Next(10, 100);
-                var xRotation = random.Next(0, 180);
-                var yRotation = random.Next(0, 180);
-                var zRotation = random.Next(0, 180);
-                var color = new Color((float)random.NextDouble(), (float)random.NextDouble(), (float)random.NextDouble());
-                AddCube(center, size, new Vector3(xRotation, yRotation, zRotation), color);
-            }
-        }
-
-        public Color ComputeDiffusionColor(Vector3 intersectionPoint, Vector3 surfaceNormal, Color objectColor)
-        {
-            // Start with zero light contribution
-            var diffuseLight = new Color(0, 0, 0);
-
-            // Accumulate contributions from all diffused lights
-            foreach (var light in DiffusedLights)
-            {
-                var lightDirection = Vector3.Normalize(light.Position - intersectionPoint);
-                var diffuseFactor = Math.Max(0, Vector3.Dot(lightDirection, surfaceNormal));
-
-                // Add this light's contribution
-                diffuseLight += (light.Color * diffuseFactor * light.Intensity * objectColor);
-            }
-
-            return diffuseLight;
-        }
-
-        public Color ComputeAmbientColor(Color objectColor)
-        {
-            return AmbientLight.Color * AmbientLight.Intensity * objectColor;
+            return AmbientLight.Color * AmbientLight.Intensity * objectMaterial.Color;
         }
 
         public void Dispose()

@@ -2,7 +2,7 @@
 
 namespace Common
 {
-    public readonly struct Triangle(Vector3 origin, Vector3 v, Vector3 w, Color color) : ITraceableObject
+    public readonly struct Triangle(Vector3 origin, Vector3 v, Vector3 w, Material material) : ITraceableObject
     {
         public Vector3 Origin { get; } = origin;
 
@@ -10,7 +10,7 @@ namespace Common
 
         public Vector3 W { get; } = w;
 
-        public Color Color { get; } = color;
+        public Material Material { get; } = material;
 
         public bool TryIntersect(Ray ray, ref Hit hit)
         {
@@ -43,7 +43,7 @@ namespace Common
 
             var intersectionPoint = ray.Origin + (ray.Direction * lambda);
             var surfaceNormal = Vector3.Normalize(Vector3.Cross(W, V));
-            hit = new Hit(intersectionPoint, surfaceNormal, Color, lambda);
+            hit = new Hit(intersectionPoint, surfaceNormal, Material, lambda);
 
             return true;
         }

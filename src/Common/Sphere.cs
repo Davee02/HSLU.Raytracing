@@ -2,13 +2,13 @@
 
 namespace Common
 {
-    public readonly struct Sphere(Vector3 center, float radius, Color color) : ITraceableObject
+    public readonly struct Sphere(Vector3 center, float radius, Material material) : ITraceableObject
     {
         public Vector3 Center { get; } = center;
 
         public float Radius { get; } = radius;
 
-        public Color Color { get; } = color;
+        public Material Material { get; } = material;
 
         public bool TryIntersect(Ray ray, ref Hit hit)
         {
@@ -35,7 +35,7 @@ namespace Common
 
             var intersectionPoint = ray.Origin + (ray.Direction * lambda);
             var surfaceNormal = Vector3.Normalize(intersectionPoint - Center);
-            hit = new Hit(intersectionPoint, surfaceNormal, Color, lambda);
+            hit = new Hit(intersectionPoint, surfaceNormal, Material, lambda);
 
             return true;
         }

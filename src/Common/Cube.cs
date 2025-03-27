@@ -11,10 +11,10 @@ namespace Common
         /// <summary>
         /// Constructs a cube starting at <paramref name="position"/> 
         /// with each edge of length <paramref name="sideLength"/>.
-        /// All faces have the same <paramref name="color"/>.
+        /// All faces have the same <paramref name="material"/>.
         /// Yaw (rotation around the Y axis), pitch (X axis), and roll (Z axis) are defined in the vector <paramref name="rotationAnglesDegrees"/>.
         /// </summary>
-        public Cube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Color color)
+        public Cube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Material material)
         {
             var rotationAnglesRadians = new Vector3(
                 rotationAnglesDegrees.X.ToRadians(),
@@ -70,34 +70,34 @@ namespace Common
             // Front face (face with z = z)
             // Desired outward normal: (0, 0, 1)
             // Use a clockwise ordering when viewed from the front.
-            _triangles[0] = new Triangle(v0, v1 - v0, v3 - v0, color);
-            _triangles[1] = new Triangle(v1, v2 - v1, v3 - v1, color);
+            _triangles[0] = new Triangle(v0, v1 - v0, v3 - v0, material);
+            _triangles[1] = new Triangle(v1, v2 - v1, v3 - v1, material);
 
             // Back face (face with z = z + L)
             // Desired outward normal: (0, 0, -1)
             // Order the vertices clockwise when viewed from the back.
-            _triangles[2] = new Triangle(v4, v6 - v4, v5 - v4, color);
-            _triangles[3] = new Triangle(v4, v7 - v4, v6 - v4, color);
+            _triangles[2] = new Triangle(v4, v6 - v4, v5 - v4, material);
+            _triangles[3] = new Triangle(v4, v7 - v4, v6 - v4, material);
 
             // Left face (face with x = x)
             // Desired outward normal: (1, 0, 0)
-            _triangles[4] = new Triangle(v0, v3 - v0, v7 - v0, color);
-            _triangles[5] = new Triangle(v0, v7 - v0, v4 - v0, color);
+            _triangles[4] = new Triangle(v0, v3 - v0, v7 - v0, material);
+            _triangles[5] = new Triangle(v0, v7 - v0, v4 - v0, material);
 
             // Right face (face with x = x + L)
             // Desired outward normal: (-1, 0, 0)
-            _triangles[6] = new Triangle(v1, v5 - v1, v6 - v1, color);
-            _triangles[7] = new Triangle(v1, v6 - v1, v2 - v1, color);
+            _triangles[6] = new Triangle(v1, v5 - v1, v6 - v1, material);
+            _triangles[7] = new Triangle(v1, v6 - v1, v2 - v1, material);
 
             // Top face (face with y = y + L)
             // Desired outward normal: (0, -1, 0)
-            _triangles[8] = new Triangle(v3, v2 - v3, v6 - v3, color);
-            _triangles[9] = new Triangle(v3, v6 - v3, v7 - v3, color);
+            _triangles[8] = new Triangle(v3, v2 - v3, v6 - v3, material);
+            _triangles[9] = new Triangle(v3, v6 - v3, v7 - v3, material);
 
             // Bottom face (face with y = y)
             // Desired outward normal: (0, 1, 0)
-            _triangles[10] = new Triangle(v0, v4 - v0, v5 - v0, color);
-            _triangles[11] = new Triangle(v0, v5 - v0, v1 - v0, color);
+            _triangles[10] = new Triangle(v0, v4 - v0, v5 - v0, material);
+            _triangles[11] = new Triangle(v0, v5 - v0, v1 - v0, material);
         }
     }
 }
