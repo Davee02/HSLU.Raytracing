@@ -40,7 +40,7 @@ namespace Common
                 Vector3 translated = v - center;
 
                 // Step 2: apply rotation
-                Vector3 rotated = translated.Transform(rotationMatrix);
+                Vector3 rotated = Vector3.Transform(translated, rotationMatrix);
 
                 // Step 3: translate back
                 return rotated + center;

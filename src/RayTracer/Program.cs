@@ -2,6 +2,7 @@
 using SixLabors.ImageSharp;
 using System.Diagnostics;
 using SixLabors.ImageSharp.Processing;
+using System.Numerics;
 
 const string filePath = "rastered_image.png";
 
@@ -19,6 +20,12 @@ using var scene = new Scene(1500, 1000)
             Color = new Common.Color(0.8f, 0.8f, 1f), // Cool light
             Position = new Vector3(300, 300, -200),
             Intensity = 0.5f
+        },
+        new Light
+        {
+            Color = new Common.Color(1, 0, 0), // Red light
+            Position = new Vector3(750, -1000, 200),
+            Intensity = 0.2f
         }
     ],
     AmbientLight = new Light
@@ -50,24 +57,23 @@ scene.AddCube(new Vector3(900, 820, 150), 60, new Vector3(0, 30, 45), new Common
 scene.AddCube(new Vector3(960, 750, 100), 20, new Vector3(45, 45, 45), new Common.Color(0.5f, 0.5f, 1));
 scene.AddCube(new Vector3(1000, 600, 100), 80, new Vector3(45, 60, 15), new Common.Color(0.5f, 1, 0.5f));
 
-static (ITraceableObject? traceableObject, float lambda) FindClosestObject(Ray ray, Scene scene)
+static Hit? FindClosestObject(Ray ray, Scene scene)
 {
-    ITraceableObject? closestObj = null;
+    Hit hit = default;
+    Hit? closestHit = default;
     float closestLambda = float.MaxValue;
 
     foreach (var obj in scene.TraceableObjects)
     {
-        if (obj.Intersect(ray, out var lambda) && lambda < closestLambda)
+        if (obj.TryIntersect(ray, ref hit) && hit.Lambda < closestLambda)
         {
-            closestLambda = lambda;
-            closestObj = obj;
+            closestHit = hit;
+            closestLambda = hit.Lambda;
         }
     }
 
-    return (closestObj, closestLambda);
+    return closestHit;
 }
-
-const float eps = 1e-2f;
 
 var sw = Stopwatch.StartNew();
 scene.Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
@@ -76,36 +82,34 @@ scene.Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
     {
         // shoot a ray from the camera through the pixel to the scene (perspective projection)
         var pixelPos = new Vector3(x, point.Y, 0);
-        var direction = (pixelPos - scene.CameraPosition).Normalize();
+        var direction = Vector3.Normalize(pixelPos - scene.CameraPosition);
         var ray = new Ray(scene.CameraPosition, direction);
 
-        var (closestObj, lambda) = FindClosestObject(ray, scene);
-
+        var closestHit = FindClosestObject(ray, scene);
         var pixelColor = scene.BackgroundColor;
-        if (closestObj != null)
-        {
-            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
 
+        if (closestHit.HasValue)
+        {
             // Start with ambient light only
-            pixelColor = scene.ComputeAmbientColor(closestObj.Color);
+            pixelColor = scene.ComputeAmbientColor(closestHit.Value.Color);
 
             // Check each light for contribution
             foreach (var light in scene.DiffusedLights)
             {
                 // Shadow ray from intersection to this light
-                var shadowRayDirection = (light.Position - intersectionPoint).Normalize();
-                var shadowRay = new Ray(intersectionPoint + (shadowRayDirection * eps), shadowRayDirection);
-                var (shadowObj, shadowLambda) = FindClosestObject(shadowRay, scene);
-                var lightDistance = (light.Position - intersectionPoint).Length;
+                var shadowRayDirection = Vector3.Normalize(light.Position - closestHit.Value.Position);
+                var shadowRay = new Ray(closestHit.Value.Position, shadowRayDirection);
+                var closestShadowHit = FindClosestObject(shadowRay, scene);
+                var lightDistance = (light.Position - closestHit.Value.Position).Length();
 
-                if (shadowObj == null || shadowLambda > lightDistance)
+                if (!closestShadowHit.HasValue || closestShadowHit.Value.Lambda > lightDistance)
                 {
                     // No shadow for this light, add its contribution
                     var lightDirection = shadowRayDirection; // Already normalized
-                    var diffuseFactor = Math.Max(0, lightDirection.ScalarProduct(closestObj.SurfaceNormal(intersectionPoint)));
+                    var diffuseFactor = Math.Max(0, Vector3.Dot(lightDirection, closestHit.Value.Normal));
 
                     // Add this light's contribution
-                    pixelColor = pixelColor + (light.Color * diffuseFactor * light.Intensity * closestObj.Color);
+                    pixelColor += (light.Color * diffuseFactor * light.Intensity * closestHit.Value.Color);
                 }
             }
         }

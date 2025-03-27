@@ -1,4 +1,6 @@
-﻿namespace Common
+﻿using System.Numerics;
+
+namespace Common
 {
     public readonly struct Sphere(Vector3 center, float radius, Color color) : ITraceableObject
     {
@@ -8,14 +10,12 @@
 
         public Color Color { get; } = color;
 
-        public bool Intersect(Ray ray, out float lambda)
+        public bool TryIntersect(Ray ray, ref Hit hit)
         {
-            lambda = 0;
-
             var v = ray.Origin - Center;
-            var a = ray.Direction.ScalarProduct(ray.Direction);
-            var b = 2 * v.ScalarProduct(ray.Direction);
-            var c = v.ScalarProduct(v) - (Radius * Radius);
+            var a = Vector3.Dot(ray.Direction, ray.Direction);
+            var b = 2 * Vector3.Dot(v, ray.Direction);
+            var c = Vector3.Dot(v, v) - (Radius * Radius);
 
             var discriminant = (b * b) - (4 * a * c);
             if (discriminant < 0)
@@ -23,11 +23,21 @@
                 return false;
             }
 
-            lambda = (-b - MathF.Sqrt(discriminant)) / (2 * a); // we can always choose the smaller lambda as the intersection point
+            var lambda = (-b - MathF.Sqrt(discriminant)) / (2 * a); // we can always choose the smaller lambda as the intersection point
 
-            return lambda > 0; // only consider intersections in front of the camera
+            if (lambda < 0)
+            {
+                // the intersection point is behind the camera
+                return false;
+            }
+
+            lambda -= ITraceableObject.eps; // move the intersection point a bit towards the camera to avoid self-intersection
+
+            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
+            var surfaceNormal = Vector3.Normalize(intersectionPoint - Center);
+            hit = new Hit(intersectionPoint, surfaceNormal, Color, lambda);
+
+            return true;
         }
-
-        public Vector3 SurfaceNormal(Vector3 intersectionPoint) => (intersectionPoint - Center).Normalize();
     }
 }

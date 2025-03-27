@@ -1,5 +1,6 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using System.Numerics;
 
 namespace Common
 {
@@ -105,8 +106,8 @@ namespace Common
             // Accumulate contributions from all diffused lights
             foreach (var light in DiffusedLights)
             {
-                var lightDirection = (light.Position - intersectionPoint).Normalize();
-                var diffuseFactor = Math.Max(0, lightDirection.ScalarProduct(surfaceNormal));
+                var lightDirection = Vector3.Normalize(light.Position - intersectionPoint);
+                var diffuseFactor = Math.Max(0, Vector3.Dot(lightDirection, surfaceNormal));
 
                 // Add this light's contribution
                 diffuseLight += (light.Color * diffuseFactor * light.Intensity * objectColor);

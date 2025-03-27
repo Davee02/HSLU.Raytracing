@@ -1,4 +1,6 @@
-﻿namespace Common
+﻿using System.Numerics;
+
+namespace Common
 {
     public readonly struct Rectangle
     {

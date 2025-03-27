@@ -1,4 +1,6 @@
-﻿namespace Common
+﻿using System.Numerics;
+
+namespace Common
 {
     public readonly struct Triangle(Vector3 origin, Vector3 v, Vector3 w, Color color) : ITraceableObject
     {
@@ -10,10 +12,8 @@
 
         public Color Color { get; } = color;
 
-        public bool Intersect(Ray ray, out float lambda)
+        public bool TryIntersect(Ray ray, ref Hit hit)
         {
-            lambda = 0;
-
             var u = ray.Direction;
 
             var A = new Matrix3x3(
@@ -29,12 +29,23 @@
                 return false;
             }
 
-            (lambda, var tau, var mu) = inverse.Multiply(B);
-            
-            var intersects = lambda > 0 && tau >= 0 && mu >= 0 && tau + mu <= 1;
-            return intersects;
-        }
+            var tmp = inverse.Multiply(B);
+            var (lambda, tau, mu) = (tmp.X, tmp.Y, tmp.Z);
 
-        public Vector3 SurfaceNormal(Vector3 _) => W.CrossProduct(V).Normalize();
+            var intersects = lambda > 0 && tau >= 0 && mu >= 0 && tau + mu <= 1;
+
+            if(!intersects)
+            {
+                return false;
+            }
+
+            lambda -= ITraceableObject.eps; // move the intersection point a bit towards the camera to avoid self-intersection
+
+            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
+            var surfaceNormal = Vector3.Normalize(Vector3.Cross(W, V));
+            hit = new Hit(intersectionPoint, surfaceNormal, Color, lambda);
+
+            return true;
+        }
     }
 }
