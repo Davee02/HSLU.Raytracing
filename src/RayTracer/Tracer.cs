@@ -66,16 +66,88 @@ internal static class Tracer
             }
         }
 
+        // Store the direct illumination color before applying reflection/refraction
+        var directColor = pixelColor;
+
+        // Calculate reflection and refraction
+        Color reflectionColor = Color.Black;
+        Color refractionColor = Color.Black;
+
         // Calculate reflection color (if material is reflective)
         if (hit.Material.Reflectivity > 0)
         {
-            var reflectionColor = TraceRay(reflectionRay, scene, depth + 1, maxDepth);
-            // Mix the reflection color with the direct illumination color based on reflectivity
-            pixelColor = pixelColor * (1 - hit.Material.Reflectivity) + reflectionColor * hit.Material.Reflectivity;
+            reflectionColor = TraceRay(reflectionRay, scene, depth + 1, maxDepth);
+        }
+
+        // Calculate refraction color (if material is transparent)
+        if (hit.Material.Transparency > 0)
+        {
+            // Calculate refraction direction using Snell's law
+            Vector3 normal = hit.Normal;
+            float n1, n2; // Refractive indices
+
+            // Determine if we're entering or exiting the material
+            bool entering = Vector3.Dot(ray.Direction, normal) < 0;
+            if (!entering)
+            {
+                normal = -normal; // Flip normal if we're exiting
+            }
+
+            // Set refractive indices based on whether we're entering or exiting
+            if (entering)
+            {
+                n1 = 1.0f; // From air (or vacuum)
+                n2 = hit.Material.RefractionIndex; // To material
+            }
+            else
+            {
+                n1 = hit.Material.RefractionIndex; // From material
+                n2 = 1.0f; // To air (or vacuum)
+            }
+
+            float eta = n1 / n2;
+            float cosI = Math.Abs(Vector3.Dot(ray.Direction, normal));
+            float sinT2 = eta * eta * (1.0f - cosI * cosI);
+
+            // Handle refraction or total internal reflection
+            if (sinT2 < 1.0f)
+            {
+                // Refraction is possible
+                float cosT = MathF.Sqrt(1.0f - sinT2);
+                Vector3 refractionDirection = Vector3.Normalize(eta * ray.Direction + (eta * cosI - cosT) * normal);
+
+                // Create refraction ray with slight offset to avoid self-intersection
+                var refractionRay = new Ray(hit.Position + refractionDirection * 5*ITraceableObject.eps, refractionDirection);
+                refractionColor = TraceRay(refractionRay, scene, depth + 1, maxDepth);
+            }
+            else
+            {
+                // Total internal reflection - all light is reflected
+                refractionColor = reflectionColor;
+            }
+        }
+
+        // Combine the contributions from direct lighting, reflection, and refraction
+
+        // Handle reflection and refraction with simple linear blending
+        if (hit.Material.Reflectivity > 0)
+        {
+            // Apply reflection based on reflectivity
+            pixelColor = directColor * (1 - hit.Material.Reflectivity) +
+                        reflectionColor * hit.Material.Reflectivity;
+        }
+
+        if (hit.Material.Transparency > 0)
+        {
+            // Apply refraction based on transparency
+            pixelColor = pixelColor * (1 - hit.Material.Transparency) +
+                        refractionColor * hit.Material.Transparency;
         }
 
         return pixelColor;
     }
+
+    // No helper methods needed with simplified approach
 
     internal static Hit? FindClosestObject(Ray ray, Scene scene)
     {
@@ -94,5 +166,4 @@ internal static class Tracer
 
         return closestHit;
     }
-
 }

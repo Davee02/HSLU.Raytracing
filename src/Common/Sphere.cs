@@ -23,18 +23,45 @@ namespace Common
                 return false;
             }
 
-            var lambda = (-b - MathF.Sqrt(discriminant)) / (2 * a); // we can always choose the smaller lambda as the intersection point
+            var lambda1 = (-b - MathF.Sqrt(discriminant)) / (2 * a);
+            var lambda2 = (-b + MathF.Sqrt(discriminant)) / (2 * a);
 
-            if (lambda < 0)
+            // Get the closest valid intersection
+            float lambda;
+            bool entering;
+
+            if (lambda1 > 0)
             {
-                // the intersection point is behind the camera
+                // First intersection is valid (ray starts outside the sphere)
+                lambda = lambda1;
+                entering = true;
+            }
+            else if (lambda2 > 0)
+            {
+                // First intersection is invalid but second is valid
+                // (ray starts inside the sphere)
+                lambda = lambda2;
+                entering = false;
+            }
+            else
+            {
+                // Both intersections are behind the ray origin
                 return false;
             }
 
-            lambda -= ITraceableObject.eps; // move the intersection point a bit towards the camera to avoid self-intersection
+            // Calculate intersection point with adjusted lambda
+            // Apply epsilon in the right direction based on whether we're entering or exiting
+            lambda = entering ? lambda - ITraceableObject.eps : lambda + ITraceableObject.eps;
 
             var intersectionPoint = ray.Origin + (ray.Direction * lambda);
             var surfaceNormal = Vector3.Normalize(intersectionPoint - Center);
+
+            // Ensure normal points against the ray direction for correct shading
+            if (!entering)
+            {
+                surfaceNormal = -surfaceNormal;
+            }
+
             hit = new Hit(intersectionPoint, surfaceNormal, Material, lambda);
 
             return true;
