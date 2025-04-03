@@ -1,14 +1,13 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Numerics;
+using System.Text;
 
 namespace Common
 {
-    public struct Scene(int width, int height) : IDisposable
+    public struct Scene(Vector2 imageSize) : IDisposable
     {
-        public int Width { get; set; } = width;
-
-        public int Height { get; set; } = height;
+        public Vector2 ImageSize { get; } = imageSize;
 
         public List<Sphere> Spheres { get; } = [];
 
@@ -20,13 +19,13 @@ namespace Common
 
         public List<Light> DiffusedLights { get; set; } = [];
 
-        public Vector3 CameraPosition { get; set; }
+        public Camera Camera { get; set; }
 
         public Light AmbientLight { get; set; }
 
         public Color BackgroundColor { get; set; } = new Color(0, 0, 0);
 
-        public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>(width, height);
+        public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>((int)imageSize.X, (int)imageSize.Y);
 
         public readonly void AddSphere(Vector3 center, float radius, Material color) 
         {
@@ -54,6 +53,15 @@ namespace Common
             Triangles.Add(triangle);
         }
 
+        public readonly void AddTriangles(IEnumerable<Triangle> triangles)
+        {
+            foreach(var triangle in triangles)
+            {
+                TraceableObjects.Add(triangle);
+                Triangles.Add(triangle);
+            }
+        }
+
 
         public readonly void AddRectangle(Vector3 origin, Vector3 w, Vector3 v, Material material)
         {
@@ -79,6 +87,16 @@ namespace Common
         public void Dispose()
         {
             Bitmap?.Dispose();
+        }
+
+        public string PrintInfo()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Image resolution: {ImageSize.X}x{ImageSize.Y}");
+            sb.AppendLine($"Number of spheres: {Spheres.Count}");
+            sb.AppendLine($"Number of planes: {Planes.Count}");
+            sb.AppendLine($"Number of triangles: {Triangles.Count}");
+            return sb.ToString();
         }
     }
 }

@@ -3,10 +3,12 @@ using SixLabors.ImageSharp;
 using System.Diagnostics;
 using SixLabors.ImageSharp.Processing;
 using System.Numerics;
+using RayTracer;
 
 const string filePath = "rastered_image.png";
+var outputDimensions = new Vector2(1280, 720);
 
-using var scene = new Scene(1500, 1000)
+using var scene = new Scene(outputDimensions)
 {
     DiffusedLights = 
     [
@@ -35,13 +37,15 @@ using var scene = new Scene(1500, 1000)
         Intensity = 0.2f
     },
     BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
-    CameraPosition = new Vector3(750, 500, -500)
+    Camera = new Camera(position: new Vector3(960, 540, -500), viewPort: new Vector2(1920f, 1080f), imageSize: outputDimensions, fieldOfView: 60),
 };
 
 scene.AddPlane(new Vector3(0, 900, 0), new Vector3(0, 0, 0), new Material(new Common.Color(0.8f, 0.8f, 0.8f), 0.1f, 20)); // gray floor in the front
 scene.AddPlane(new Vector3(0, 0, 1000), new Vector3(0, 0, 90), new Material(new Common.Color(0.7f, 0.7f, 0.9f), 0.1f, 20)); // blue wall on the left
+scene.AddPlane(new Vector3(0, 0, 10000), new Vector3(0, 90, 90), new Material(new Common.Color(0.7f, 0.9f, 0.7f), 0.1f, 20)); // green wall at the back
 
-scene.AddSphere(new Vector3(1100, 200, 310), 200, new Material(new Common.Color(1, 0.9f, 0.2f), 1f, 20));
+scene.AddSphere(new Vector3(1100, 200, 310), 200, new Material(new Common.Color(1, 0.9f, 0.2f), 0.9f, 20));
+scene.AddSphere(new Vector3(1500, 500, 200), 200, new Material(new Common.Color(1, 0.9f, 0.2f), 0.9f, 20));
 scene.AddCube(new Vector3(1000, 150, 30), 30, new Vector3(80, 10, 30), new Material(new Common.Color(1, 0.9f, 0.2f), 0.1f, 20));
 
 scene.AddSphere(new Vector3(700, 400, 350), 80, new Material(new Common.Color(1, 0.3f, 0.3f), 0.1f, 20));
@@ -57,100 +61,17 @@ scene.AddSphere(new Vector3(550, 850, 250), 40, new Material(new Common.Color(0.
 scene.AddCube(new Vector3(900, 820, 150), 60, new Vector3(0, 30, 45), new Material(new Common.Color(0.5f, 0.5f, 1), 0.1f, 20));
 scene.AddCube(new Vector3(960, 750, 100), 20, new Vector3(45, 45, 45), new Material(new Common.Color(0.5f, 0.5f, 1), 0.1f, 20));
 scene.AddCube(new Vector3(1000, 600, 100), 80, new Vector3(45, 60, 15), new Material(new Common.Color(0.5f, 1, 0.5f), 0.1f, 20));
+scene.AddCube(new Vector3(500, 200, 300), 120, new Vector3(70, 60, 15), new Material(new Common.Color(0, 0, 0), 1f, 50));
 
-static Hit? FindClosestObject(Ray ray, Scene scene)
-{
-    Hit hit = default;
-    Hit? closestHit = default;
-    float closestLambda = float.MaxValue;
-
-    foreach (var obj in scene.TraceableObjects)
-    {
-        if (obj.TryIntersect(ray, ref hit) && hit.Lambda < closestLambda)
-        {
-            closestHit = hit;
-            closestLambda = hit.Lambda;
-        }
-    }
-
-    return closestHit;
-}
-
-static Common.Color TraceRay(Ray ray, Scene scene, int depth, int maxDepth)
-{
-    // Base case: if we've reached max recursion depth, return background color
-    if (depth > maxDepth)
-    {
-        return scene.BackgroundColor;
-    }
-
-    var closestHit = FindClosestObject(ray, scene);
-    if (!closestHit.HasValue)
-    {
-        return scene.BackgroundColor;
-    }
-
-    var hit = closestHit.Value;
-
-    // Calculate reflection ray
-    var reflectionRay = new Ray(hit.Position, Vector3.Normalize(Vector3.Reflect(ray.Direction, hit.Normal)));
-
-    // Start with ambient light only
-    var pixelColor = scene.ComputeAmbientColor(hit.Material);
-
-    // Accumulate contributions from all diffused lights
-    var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor)>();
-    foreach (var light in scene.DiffusedLights)
-    {
-        // Shadow ray from intersection to this light
-        var lightDirection = Vector3.Normalize(light.Position - hit.Position);
-        var shadowRay = new Ray(hit.Position, lightDirection);
-
-        var closestShadowHit = FindClosestObject(shadowRay, scene);
-        var lightDistance = (light.Position - hit.Position).Length();
-
-        if (!closestShadowHit.HasValue || closestShadowHit.Value.Lambda > lightDistance)
-        {
-            // No shadow for this light, add its contribution
-            var diffuseFactor = Vector3.Dot(lightDirection, hit.Normal);
-
-            if (diffuseFactor > 0)
-            {
-                var specularFactor = Vector3.Dot(reflectionRay.Direction, shadowRay.Direction);
-                specularFactor = MathF.Max(0, specularFactor);
-                specularFactor = MathF.Pow(specularFactor, hit.Material.Shininess);
-
-                contributingLights.Add((light, diffuseFactor, specularFactor));
-            }
-        }
-    }
-
-    if (contributingLights.Count > 0)
-    {
-        // Apply normalization factor
-        var lightFactor = 1f / contributingLights.Count; // normalize by dividing by the number of contributing light sources
-        foreach (var (light, diffuseFactor, specularFactor) in contributingLights)
-        {
-            var diffuseContribution = hit.Material.Color * diffuseFactor;
-            var specularContribution = light.Color * specularFactor;
-
-            pixelColor += light.Color * light.Intensity * (diffuseContribution + specularContribution);
-        }
-    }
-
-    // Calculate reflection color (if material is reflective)
-    if (hit.Material.Reflectivity > 0)
-    {
-        var reflectionColor = TraceRay(reflectionRay, scene, depth + 1, maxDepth);
-        // Mix the reflection color with the direct illumination color based on reflectivity
-        pixelColor = pixelColor * (1 - hit.Material.Reflectivity) + reflectionColor * hit.Material.Reflectivity;
-    }
-
-    return pixelColor;
-}
+//var defaultMaterial = new Material(new Common.Color(1, 1, 1), 0.5f, 20);
+//var triangles = ObjImporter.ImportObj(@"C:\Users\David\Downloads\Untitled.obj", defaultMaterial);
+//scene.AddTriangles(triangles);
 
 var lineSkipStep = 1;
-var maxRecursionDepth = 3;
+var maxRecursionDepth = 6;
+
+Console.WriteLine(scene.PrintInfo());
+
 var sw = Stopwatch.StartNew();
 scene.Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
 {
@@ -161,13 +82,9 @@ scene.Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
 
     for (int x = 0; x < row.Length; x++)
     {
-        // shoot a ray from the camera through the pixel to the scene (perspective projection)
-        var pixelPos = new Vector3(x, point.Y, 0);
-        var direction = Vector3.Normalize(pixelPos - scene.CameraPosition);
-        var ray = new Ray(scene.CameraPosition, direction);
+        var ray = scene.Camera.GetRay(x, point.Y, usePerspectiveProjection: true);
 
-        // Use the recursive TraceRay function instead of direct color calculation
-        var pixelColor = TraceRay(ray, scene, 0, maxRecursionDepth);
+        var pixelColor = Tracer.TraceRay(ray, scene, 0, maxRecursionDepth);
 
         row[x] = pixelColor.ToVector4();
     }

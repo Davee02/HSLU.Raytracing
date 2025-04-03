@@ -9,9 +9,9 @@ const int height = 500;
 const int radius = 100;
 const string filePath = "skia_raster_image.png";
 
-var circle1 = new Circle(new Vector2(200, 200), radius, new Common.Color(1, 0, 0));
-var circle2 = new Circle(new Vector2(300, 300), radius, new Common.Color(0, 1, 0));
-var circle3 = new Circle(new Vector2(350, 200), radius, new Common.Color(0, 0, 1));
+var circle1 = new Circle(new MyVector2(200, 200), radius, new Common.Color(1, 0, 0));
+var circle2 = new Circle(new MyVector2(300, 300), radius, new Common.Color(0, 1, 0));
+var circle3 = new Circle(new MyVector2(350, 200), radius, new Common.Color(0, 0, 1));
 
 // Create a SkiaSharp bitmap (raster surface)
 using var bitmap = new Image<Rgba32>(width, height);
@@ -24,7 +24,7 @@ bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
 
     for (int x = 0; x < row.Length; x++)
     {
-        var location = new Vector2(x, y);
+        var location = new MyVector2(x, y);
         var color = new Common.Color(background.R, background.G, background.B);
 
         if (circle1.ContainsPixel(location))

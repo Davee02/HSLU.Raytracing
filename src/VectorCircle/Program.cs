@@ -8,9 +8,9 @@ const int circleCenterY = height / 2;
 const int circleRadius = 100;
 const string filePath = "skia_raster_image.png";
 
-var circleCenter = new Vector2(circleCenterX, circleCenterY);
+var circleCenter = new MyVector2(circleCenterX, circleCenterY);
 
-static bool IsInCircle(Vector2 pixel, Vector2 circleCenter, int radius)
+static bool IsInCircle(MyVector2 pixel, MyVector2 circleCenter, int radius)
 {
     return pixel.EuclideanDistance(circleCenter) <= radius;
 }
@@ -25,7 +25,7 @@ for (int y = 0; y < height; y++)
     {
         var color = SKColor.Parse("#000000"); // background color is black
 
-        var pixel = new Vector2(x, y);
+        var pixel = new MyVector2(x, y);
         if (IsInCircle(pixel, circleCenter, circleRadius))
         {
             color = SKColor.Parse("#00FF00"); // circle color is green
