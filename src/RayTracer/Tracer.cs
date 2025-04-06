@@ -27,19 +27,82 @@ internal static class Tracer
         var pixelColor = scene.ComputeAmbientColor(hit.Material);
 
         // Accumulate contributions from all diffused lights
-        var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor)>();
+        var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor, float shadowFactor, Color shadowColor)>();
         foreach (var light in scene.DiffusedLights)
         {
             // Shadow ray from intersection to this light
             var lightDirection = Vector3.Normalize(light.Position - hit.Position);
             var shadowRay = new Ray(hit.Position, lightDirection);
 
-            var closestShadowHit = FindClosestObject(shadowRay, scene);
             var lightDistance = (light.Position - hit.Position).Length();
 
-            if (!closestShadowHit.HasValue || closestShadowHit.Value.Lambda > lightDistance)
+            // Calculate shadow attenuation by tracing through transparent objects
+            float shadowFactor = 1.0f; // Start with full light (no shadow)
+            Color shadowColor = Color.White; // Start with no tint
+
+            // We'll trace the shadow ray through potentially multiple objects
+            var currentRay = shadowRay;
+            float distanceCovered = 0;
+
+            // Limit the number of transparent objects we'll process to avoid infinite loops
+            const int MAX_SHADOW_DEPTH = 5;
+            for (int shadowDepth = 0; shadowDepth < MAX_SHADOW_DEPTH; shadowDepth++)
             {
-                // No shadow for this light, add its contribution
+                var shadowHit = FindClosestObject(currentRay, scene);
+
+                // If we hit nothing or we've gone beyond the light, we're done
+                if (!shadowHit.HasValue || distanceCovered + shadowHit.Value.Lambda > lightDistance)
+                {
+                    break;
+                }
+
+                // Accumulate the distance we've traveled
+                distanceCovered += shadowHit.Value.Lambda;
+
+                // Check if this object is transparent
+                if (shadowHit.Value.Material.Transparency > 0)
+                {
+                    // Reduce light by the object's opacity (1 - transparency)
+                    shadowFactor *= shadowHit.Value.Material.Transparency;
+
+                    // Calculate the amount of opacity-based tinting
+                    float tintStrength = 1 - shadowHit.Value.Material.Transparency;
+
+                    // Tint the shadow with the object's color based on opacity
+                    // For a fully transparent object (transparency=1), shadowColor remains unchanged
+                    // For a partially transparent object, shadowColor gets partially tinted
+                    shadowColor = new Color(
+                        shadowColor.R * (1 - tintStrength + shadowHit.Value.Material.Color.R * tintStrength),
+                        shadowColor.G * (1 - tintStrength + shadowHit.Value.Material.Color.G * tintStrength),
+                        shadowColor.B * (1 - tintStrength + shadowHit.Value.Material.Color.B * tintStrength)
+                    );
+
+                    // If almost no light is left, consider it completely in shadow
+                    if (shadowFactor < 0.01f)
+                    {
+                        shadowFactor = 0;
+                        shadowColor = Color.Black;
+                        break;
+                    }
+
+                    // Continue the ray from the exit point
+                    currentRay = new Ray(
+                        shadowHit.Value.Position + currentRay.Direction * ITraceableObject.eps * 10,
+                        currentRay.Direction
+                    );
+                }
+                else
+                {
+                    // If we hit an opaque object, we're in full shadow
+                    shadowFactor = 0;
+                    shadowColor = Color.Black;
+                    break;
+                }
+            }
+
+            // If we have any light contribution
+            if (shadowFactor > 0)
+            {
                 var diffuseFactor = Vector3.Dot(lightDirection, hit.Normal);
 
                 if (diffuseFactor > 0)
@@ -48,7 +111,7 @@ internal static class Tracer
                     specularFactor = MathF.Max(0, specularFactor);
                     specularFactor = MathF.Pow(specularFactor, hit.Material.Shininess);
 
-                    contributingLights.Add((light, diffuseFactor, specularFactor));
+                    contributingLights.Add((light, diffuseFactor, specularFactor, shadowFactor, shadowColor));
                 }
             }
         }
@@ -56,13 +119,14 @@ internal static class Tracer
         if (contributingLights.Count > 0)
         {
             // Apply normalization factor
-            var lightFactor = 1f / contributingLights.Count; // normalize by dividing by the number of contributing light sources
-            foreach (var (light, diffuseFactor, specularFactor) in contributingLights)
+            var lightFactor = 1f / contributingLights.Count;
+            foreach (var (light, diffuseFactor, specularFactor, shadowFactor, shadowColor) in contributingLights)
             {
                 var diffuseContribution = hit.Material.Color * diffuseFactor;
                 var specularContribution = light.Color * specularFactor;
 
-                pixelColor += light.Color * light.Intensity * (diffuseContribution + specularContribution);
+                // Apply both shadow factor and shadow color to the light contribution
+                pixelColor += (light.Color * shadowColor) * light.Intensity * shadowFactor * (diffuseContribution + specularContribution);
             }
         }
 
@@ -146,8 +210,6 @@ internal static class Tracer
 
         return pixelColor;
     }
-
-    // No helper methods needed with simplified approach
 
     internal static Hit? FindClosestObject(Ray ray, Scene scene)
     {

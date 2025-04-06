@@ -43,8 +43,16 @@ namespace Common
 
             var intersectionPoint = ray.Origin + (ray.Direction * lambda);
             var surfaceNormal = Vector3.Normalize(Vector3.Cross(W, V));
-            hit = new Hit(intersectionPoint, surfaceNormal, Material, lambda);
 
+            // Check if we're hitting the back face of the triangle
+            // If so, we need to flip the normal for proper refraction
+            var fromFront = Vector3.Dot(ray.Direction, surfaceNormal) < 0;
+            if (!fromFront)
+            {
+                surfaceNormal = -surfaceNormal;
+            }
+
+            hit = new Hit(intersectionPoint, surfaceNormal, Material, lambda);
             return true;
         }
     }

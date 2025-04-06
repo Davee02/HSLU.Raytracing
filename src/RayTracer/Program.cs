@@ -11,7 +11,7 @@ var outputDimensions = new Vector2(1280, 720);
 using var scene = Scene.CreateCornellBoxScene();
 //using var scene = new Scene(outputDimensions)
 //{
-//    DiffusedLights = 
+//    DiffusedLights =
 //    [
 //        new Light
 //        {
@@ -19,18 +19,18 @@ using var scene = Scene.CreateCornellBoxScene();
 //            Position = new Vector3(1000, 200, -300),
 //            Intensity = 0.7f,
 //        },
-//        //new Light
-//        //{
-//        //    Color = new Common.Color(0.8f, 0.8f, 1f), // Cool light
-//        //    Position = new Vector3(300, 300, -200),
-//        //    Intensity = 0.5f
-//        //},
-//        //new Light
-//        //{
-//        //    Color = new Common.Color(1, 0, 0), // Red light
-//        //    Position = new Vector3(750, -1000, 200),
-//        //    Intensity = 0.2f
-//        //}
+//        new Light
+//        {
+//            Color = new Common.Color(0.8f, 0.8f, 1f), // Cool light
+//            Position = new Vector3(300, 300, -200),
+//            Intensity = 0.5f
+//        },
+//        new Light
+//        {
+//            Color = new Common.Color(1, 0, 0), // Red light
+//            Position = new Vector3(750, -1000, 200),
+//            Intensity = 0.2f
+//        }
 //    ],
 //    AmbientLight = new Light
 //    {
@@ -41,7 +41,7 @@ using var scene = Scene.CreateCornellBoxScene();
 //    Camera = new Camera(position: new Vector3(960, 540, -500), viewPort: new Vector2(1920f, 1080f), imageSize: outputDimensions, fieldOfView: 60),
 //};
 
-//scene.AddSphere(new Vector3(900, 500, 300), 200, new Material(Common.Color.White, 0f, 20, 1f, 1.33f));
+//scene.AddSphere(new Vector3(900, 500, 300), 200, new Material(Common.Color.White, 0f, 20, 0.7f, 1.33f));
 
 //scene.AddSphere(new Vector3(1000, 500, 800), 100, new Material(Common.Color.Red, 0.5f, 20));
 ////scene.AddSphere(new Vector3(1100, 550, 700), 50, new Material(Common.Color.Green, 0.5f, 20));

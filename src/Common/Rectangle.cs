@@ -1,91 +1,102 @@
 ﻿using System.Numerics;
-
 namespace Common
 {
-    public readonly struct Rectangle : ITraceableObject
+    public readonly struct Rectangle
     {
-        public Vector3 Position { get; } // Center of the rectangle
-        
-        public Vector3 Normal { get; } // Normal vector (perpendicular to rectangle)
-
-        public Vector3 Width { get; }
-
-        public Vector3 Height { get; }
-
-        public float WidthExtent { get; } // Half width
-
-        public float HeightExtent { get; } // Half height
+        private readonly Triangle[] _triangles;
 
         public Material Material { get; }
 
-        public Rectangle(Vector3 position, Vector3 normal, Vector3 up, float width, float height, Material material)
+        /// <summary>
+        /// Constructs a rectangle with thickness using triangles for internal representation.
+        /// </summary>
+        /// <param name="position">Center position of the front face</param>
+        /// <param name="normal">Direction the front face points</param>
+        /// <param name="up">Up direction used to calculate orientation</param>
+        /// <param name="width">Width of the rectangle</param>
+        /// <param name="height">Height of the rectangle</param>
+        /// <param name="thickness">Thickness of the rectangle</param>
+        /// <param name="material">Material properties</param>
+        public Rectangle(Vector3 position, Vector3 normal, Vector3 up, float width, float height, float thickness, Material material)
         {
-            Position = position;
-            Normal = Vector3.Normalize(normal);
+            Material = material;
+
+            // Normalize vectors
+            normal = Vector3.Normalize(normal);
 
             // Calculate width direction (right vector) using cross product of up and normal
-            Width = Vector3.Normalize(Vector3.Cross(up, Normal));
+            var widthDir = Vector3.Normalize(Vector3.Cross(up, normal));
 
             // Calculate true height direction (up vector) using cross product of normal and width
-            Height = Vector3.Normalize(Vector3.Cross(Normal, Width));
+            var heightDir = Vector3.Normalize(Vector3.Cross(normal, widthDir));
 
-            WidthExtent = width / 2f;
-            HeightExtent = height / 2f;
-            Material = material;
+            // Half extents
+            var halfWidth = width / 2f;
+            var halfHeight = height / 2f;
+
+            // Create the 8 corners of the box
+            Vector3 frontCenter = position;
+            Vector3 backCenter = position + normal * thickness;
+
+            // Front face corners (when looking at front face)
+            Vector3 frontBL = frontCenter - widthDir * halfWidth - heightDir * halfHeight;
+            Vector3 frontBR = frontCenter + widthDir * halfWidth - heightDir * halfHeight;
+            Vector3 frontTR = frontCenter + widthDir * halfWidth + heightDir * halfHeight;
+            Vector3 frontTL = frontCenter - widthDir * halfWidth + heightDir * halfHeight;
+
+            // Back face corners (when looking at back face)
+            Vector3 backBL = backCenter - widthDir * halfWidth - heightDir * halfHeight;
+            Vector3 backBR = backCenter + widthDir * halfWidth - heightDir * halfHeight;
+            Vector3 backTR = backCenter + widthDir * halfWidth + heightDir * halfHeight;
+            Vector3 backTL = backCenter - widthDir * halfWidth + heightDir * halfHeight;
+
+            // Create all 12 triangles (2 for each face)
+            _triangles = new Triangle[12];
+
+            // Front face (face with normal pointing to -normal)
+            // Desired outward normal: -normal
+            _triangles[0] = new Triangle(frontBL, frontBR - frontBL, frontTL - frontBL, material);
+            _triangles[1] = new Triangle(frontBR, frontTR - frontBR, frontTL - frontBR, material);
+
+            // Back face (face with normal pointing to normal)
+            // Desired outward normal: normal
+            _triangles[2] = new Triangle(backBL, backTL - backBL, backBR - backBL, material);
+            _triangles[3] = new Triangle(backBR, backTL - backBR, backTR - backBR, material);
+
+            // Left face (face with normal pointing to -widthDir)
+            // Desired outward normal: -widthDir
+            _triangles[4] = new Triangle(frontBL, frontTL - frontBL, backBL - frontBL, material);
+            _triangles[5] = new Triangle(backBL, frontTL - backBL, backTL - backBL, material);
+
+            // Right face (face with normal pointing to widthDir)
+            // Desired outward normal: widthDir
+            _triangles[6] = new Triangle(frontBR, backBR - frontBR, frontTR - frontBR, material);
+            _triangles[7] = new Triangle(frontTR, backBR - frontTR, backTR - frontTR, material);
+
+            // Top face (face with normal pointing to heightDir)
+            // Desired outward normal: heightDir
+            _triangles[8] = new Triangle(frontTL, frontTR - frontTL, backTL - frontTL, material);
+            _triangles[9] = new Triangle(backTL, frontTR - backTL, backTR - backTL, material);
+
+            // Bottom face (face with normal pointing to -heightDir)
+            // Desired outward normal: -heightDir
+            _triangles[10] = new Triangle(frontBL, backBL - frontBL, frontBR - frontBL, material);
+            _triangles[11] = new Triangle(frontBR, backBL - frontBR, backBR - frontBR, material);
         }
 
-        // Convenience constructor to create full planes for the Cornell box
-        public static Rectangle CreateWall(Vector3 center, Vector3 normal, float size, Material material)
+        /// <summary>
+        /// Creates a rectangular wall with equal width and height.
+        /// </summary>
+        public static Rectangle CreateWall(Vector3 center, Vector3 normal, float size, float thickness, Material material)
         {
+            // Choose an up vector that's not parallel to the normal
             var up = normal.Y != 0 ? new Vector3(0, 0, 1) : new Vector3(0, 1, 0);
-            return new Rectangle(center, normal, up, size, size, material);
+            return new Rectangle(center, normal, up, size, size, thickness, material);
         }
 
-        public bool TryIntersect(Ray ray, ref Hit hit)
-        {
-            // Calculate the denominator: dot product of ray direction and rectangle normal
-            var denominator = Vector3.Dot(ray.Direction, Normal);
-
-            // If denominator is close to 0, ray is parallel to the rectangle (no intersection)
-            if (Math.Abs(denominator) < 1e-6)
-            {
-                return false;
-            }
-
-            // Calculate distance from ray origin to the rectangle plane
-            var numerator = Vector3.Dot(Normal, Position - ray.Origin);
-
-            // Calculate intersection distance
-            var lambda = numerator / denominator;
-
-            // Intersection happens if lambda is positive (in front of the camera)
-            if (lambda < 0)
-            {
-                return false;
-            }
-
-            // Whether we're entering or exiting depends on the normal and ray direction
-            bool entering = denominator < 0; // Ray is coming from the front of the surface
-
-            // Apply epsilon correction based on entering/exiting
-            lambda = entering ? lambda - ITraceableObject.eps : lambda + ITraceableObject.eps;
-
-            // Calculate the intersection point
-            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
-
-            // Check if the intersection point is within the rectangle bounds
-            var relativePos = intersectionPoint - Position;
-            var projWidth = Vector3.Dot(relativePos, Width);
-            var projHeight = Vector3.Dot(relativePos, Height);
-
-            if (Math.Abs(projWidth) > WidthExtent || Math.Abs(projHeight) > HeightExtent)
-            {
-                return false; // Outside rectangle bounds
-            }
-
-            // Create the hit object
-            hit = new Hit(intersectionPoint, Normal, Material, lambda);
-            return true;
-        }
+        /// <summary>
+        /// Provides access to the triangles for debugging or rendering.
+        /// </summary>
+        public IReadOnlyList<Triangle> Triangles => _triangles;
     }
 }

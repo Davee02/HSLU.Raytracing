@@ -63,15 +63,18 @@ namespace Common
         }
 
 
-        public readonly void AddRectangle(Vector3 position, Vector3 normal, Vector3 up, float width, float height, Material material)
+        public readonly void AddRectangle(Vector3 position, Vector3 normal, Vector3 up, float width, float height, float thickness, Material material)
         {
-            var rectangle = new Rectangle(position, normal, up, width, height, material);
-            TraceableObjects.Add(rectangle);
+            var rectangle = new Rectangle(position, normal, up, width, height, thickness, material);
+            AddRectangle(rectangle);
         }
 
         public readonly void AddRectangle(Rectangle rectangle)
         {
-            TraceableObjects.Add(rectangle);
+            foreach (var triangle in rectangle.Triangles)
+            {
+                AddTriangle(triangle);
+            }
         }
 
         public readonly void AddCube(Vector3 position, float sideLength, Vector3 rotationAnglesDegrees, Material material)
@@ -105,7 +108,7 @@ namespace Common
 
         public static Scene CreateCornellBoxScene()
         {
-            var scene = new Scene(new Vector2(1920f, 1080f))
+            var scene = new Scene(new Vector2(1280f, 720f))
             {
                 AmbientLight = new Light
                 {
@@ -123,7 +126,7 @@ namespace Common
             scene.Camera = new Camera(
                 position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - 2 * halfSize),
                 viewPort: new Vector2(1920f, 1080f),
-                imageSize: new Vector2(1920f, 1080f),
+                imageSize: scene.ImageSize,
                 fieldOfView: 60);
 
             // Add diffuse lights
@@ -134,27 +137,37 @@ namespace Common
                 Intensity = 1.0f
             });
 
+            scene.DiffusedLights.Add(new Light
+            {
+                Position = new Vector3(roomCenter.X, 1000, 900),
+                Color = Color.White,
+                Intensity = 0.6f
+            });
+
             // Materials for walls
             var redMaterial = new Material(Color.Red, 0.2f, 20, 0f);
             var greenMaterial = new Material(Color.Green, 0.2f, 20, 0f);
             var whiteMaterial = new Material(Color.White, 0f, 20, 0f);
-            var blueMaterial = new Material(Color.Cyan, 0.2f, 20, 0f);
+            var glassMaterial = new Material(new Color(0.8f, 0.8f, 1.0f), 0.1f, 50, 0.8f, 10.5f);
+            var cyanMaterial = new Material(Color.Cyan, 0.2f, 20, 0f);
             var yellowMaterial = new Material(Color.Yellow, 0.2f, 20, 0f);
 
             // Create the walls of the Cornell box
 
-            // Back wall (blue)
-            //scene.AddRectangle(Rectangle.CreateWall(
-            //    new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z + halfSize),
-            //    new Vector3(0, 0, -1),
-            //    roomSize,
-            //    blueMaterial));
+            // Back wall (transparent white)
+            scene.AddRectangle(Rectangle.CreateWall(
+                new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z + halfSize),
+                new Vector3(0, 0, -1),
+                roomSize,
+                50,
+                glassMaterial));
 
             // Left wall (purple)
             scene.AddRectangle(Rectangle.CreateWall(
                 new Vector3(roomCenter.X - halfSize, roomCenter.Y, roomCenter.Z),
                 new Vector3(1, 0, 0),
                 roomSize,
+                5,
                 redMaterial));
 
             // Right wall (yellow)
@@ -162,6 +175,7 @@ namespace Common
                 new Vector3(roomCenter.X + halfSize, roomCenter.Y, roomCenter.Z),
                 new Vector3(-1, 0, 0),
                 roomSize,
+                5,
                 yellowMaterial));
 
             // Floor (white)
@@ -169,6 +183,7 @@ namespace Common
                 new Vector3(roomCenter.X, roomCenter.Y + halfSize, roomCenter.Z),
                 new Vector3(0, -1, 0),
                 roomSize,
+                5,
                 whiteMaterial));
 
             // Ceiling (cyan)
@@ -176,7 +191,8 @@ namespace Common
                 new Vector3(roomCenter.X, roomCenter.Y - halfSize, roomCenter.Z),
                 new Vector3(0, 1, 0),
                 roomSize,
-                blueMaterial));
+                5,
+                cyanMaterial));
 
             // Add spheres
 
@@ -186,17 +202,29 @@ namespace Common
                 100,
                 new Material(Color.White, 0.7f, 50, 0f));
 
-            // Gold sphere
+            // Transmissive sphere
             scene.AddSphere(
-                new Vector3(roomCenter.X + halfSize * 0.3f, roomCenter.Y + halfSize * 0.5f, roomCenter.Z),
+                new Vector3(roomCenter.X + halfSize * 0.3f, roomCenter.Y + halfSize * 0.5f, 600),
                 100,
-                new Material(new Color(1.0f, 0.8f, 0.2f), 0.5f, 100, 0f));
+                new Material(Color.Red, 0f, 100, 0.9f, 1.2f));
+
+            // Sphere behind transmissive sphere
+            scene.AddSphere(
+                new Vector3(roomCenter.X + halfSize * 0.3f, roomCenter.Y + halfSize * 0.5f, 800),
+                50,
+                new Material(Color.Green, 0f, 20, 0f));
 
             // Small cyan sphere
             scene.AddSphere(
                 new Vector3(roomCenter.X, roomCenter.Y + halfSize * 0.7f, roomCenter.Z - halfSize * 0.3f),
                 50,
                 new Material(Color.Cyan, 0f, 20, 0f));
+
+            // Blue sphere in the back
+            scene.AddSphere(
+                new Vector3(roomCenter.X, 500, 1000),
+                100,
+                new Material(Color.Blue, 0f, 20, 0f));
 
             return scene;
         }
