@@ -1,10 +1,9 @@
-﻿using Common;
-using System.Numerics;
+﻿using System.Numerics;
 
-namespace RayTracer;
-internal static class Tracer
+namespace Common;
+public static class Tracer
 {
-    internal static Color TraceRay(Ray ray, Scene scene, int depth, int maxDepth)
+    public static Color TraceRay(Ray ray, Scene scene, int depth, int maxDepth)
     {
         // Base case: if we've reached max recursion depth, return background color
         if (depth > maxDepth)
@@ -126,7 +125,7 @@ internal static class Tracer
                 var specularContribution = light.Color * specularFactor;
 
                 // Apply both shadow factor and shadow color to the light contribution
-                pixelColor += (light.Color * shadowColor) * light.Intensity * shadowFactor * (diffuseContribution + specularContribution);
+                pixelColor += light.Color * shadowColor * light.Intensity * shadowFactor * (diffuseContribution + specularContribution);
             }
         }
 

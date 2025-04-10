@@ -6,9 +6,9 @@ using System.Numerics;
 using RayTracer;
 
 const string filePath = "rastered_image.png";
-var outputDimensions = new Vector2(1280, 720);
+var outputDimensions = new Vector2(1280 / 2, 720 / 2);
 
-using var scene = Scene.CreateCornellBoxScene();
+//using var scene = Scene.CreateCornellBoxScene();
 //using var scene = new Scene(outputDimensions)
 //{
 //    DiffusedLights =
@@ -78,33 +78,60 @@ using var scene = Scene.CreateCornellBoxScene();
 //var triangles = ObjImporter.ImportObj(@"C:\Users\David\Downloads\Untitled.obj", defaultMaterial);
 //scene.AddTriangles(triangles);
 
+var scene = new Scene(outputDimensions)
+{
+    DiffusedLights =
+    [
+        new Light
+        {
+            Color = new Common.Color(1, 0.9f, 0.8f), // Warm light
+            Position = new Vector3(1000, 200, -300),
+            Intensity = 0.7f,
+        }
+    ],
+    AmbientLight = new Light
+    {
+        Color = new Common.Color(1, 1, 1),
+        Intensity = 0.2f
+    },
+    BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
+};
+
+scene.Camera = new Camera(
+    position: new Vector3(scene.ImageSize.X, scene.ImageSize.Y, -300),
+    lookAt: new Vector3(1000, 500, 500),
+    up: new Vector3(0, -1, 0),
+    imageWidth: scene.ImageSize.X,
+    imageHeight: scene.ImageSize.Y,
+    fieldOfView: 60);
+
+scene.AddCube(new Vector3(1000, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.White, 0f, 20));
+scene.AddCube(new Vector3(700, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.Red, 0f, 20));
+
 var lineSkipStep = 1;
-var maxRecursionDepth = 5;
+var maxRecursionDepth = 4;
 
 Console.WriteLine(scene.PrintInfo());
-
+scene.Render(lineSkipStep, maxRecursionDepth);
 var sw = Stopwatch.StartNew();
-scene.Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
-{
-    if (point.Y % lineSkipStep != 0)
-    {
-        return;
-    }
+var cams = CameraTools.CreateTrackingShotsAroundObject(scene.Camera, 100, 1000);
+var images = CameraTools.CreateImagesForCameras(scene, cams);
 
-    for (int x = 0; x < row.Length; x++)
-    {
-        var ray = scene.Camera.GetRayForPixel(x, point.Y);
+//await scene.Bitmap.SaveAsPngAsync(filePath);
 
-        var pixelColor = Tracer.TraceRay(ray, scene, 0, maxRecursionDepth);
-
-        row[x] = pixelColor.ToVector4();
-    }
-}));
 sw.Stop();
+
+var imageIndex = 0;
+foreach (var image in images)
+{
+    await image.SaveAsPngAsync($"rastered_image_{imageIndex++}.png");
+}
 
 Console.WriteLine($"Finished rendering in {sw.ElapsedMilliseconds} ms");
 
-await scene.Bitmap.SaveAsPngAsync(filePath);
+//await scene.Bitmap.SaveAsPngAsync(filePath);
 
 // Open the image with the default image viewer
-Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+//Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+
+scene.Dispose();

@@ -1,5 +1,6 @@
 ﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Numerics;
 using System.Text;
 
@@ -106,9 +107,31 @@ namespace Common
             return sb.ToString();
         }
 
+
+        public readonly void Render(int lineSkipStep, int maxRecursionDepth)
+        {
+            var thisScene = this; // needed for the lambda function
+            Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
+            {
+                if (point.Y % lineSkipStep != 0)
+                {
+                    return;
+                }
+
+                for (int x = 0; x < row.Length; x++)
+                {
+                    var ray = thisScene.Camera.GetRayForPixel(x, point.Y);
+
+                    var pixelColor = Tracer.TraceRay(ray, thisScene, 0, maxRecursionDepth);
+
+                    row[x] = pixelColor.ToVector4();
+                }
+            }));
+        }
+
         public static Scene CreateCornellBoxScene()
         {
-            var scene = new Scene(new Vector2(1280f, 720f))
+            var scene = new Scene(new Vector2(1280f / 2, 720f / 2))
             {
                 AmbientLight = new Light
                 {
@@ -125,8 +148,10 @@ namespace Common
 
             scene.Camera = new Camera(
                 position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - 2 * halfSize),
-                viewPort: new Vector2(1920f, 1080f),
-                imageSize: scene.ImageSize,
+                lookAt: new Vector3(1000, 500, 500),
+                up: new Vector3(0, -1, 0),
+                imageWidth: scene.ImageSize.X,
+                imageHeight: scene.ImageSize.Y,
                 fieldOfView: 60);
 
             // Add diffuse lights
