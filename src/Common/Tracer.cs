@@ -44,8 +44,7 @@ public static class Tracer
             float distanceCovered = 0;
 
             // Limit the number of transparent objects we'll process to avoid infinite loops
-            const int MAX_SHADOW_DEPTH = 5;
-            for (int shadowDepth = 0; shadowDepth < MAX_SHADOW_DEPTH; shadowDepth++)
+            for (int shadowDepth = 0; shadowDepth < maxDepth; shadowDepth++)
             {
                 var shadowHit = FindClosestObject(currentRay, scene);
 

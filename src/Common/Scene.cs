@@ -8,6 +8,8 @@ namespace Common
 {
     public struct Scene(Vector2 imageSize) : IDisposable
     {
+        public RenderSettings RenderSettings { get; set; } = new();
+
         public Vector2 ImageSize { get; } = imageSize;
 
         public List<Sphere> Spheres { get; } = [];
@@ -108,12 +110,12 @@ namespace Common
         }
 
 
-        public readonly void Render(int lineSkipStep, int maxRecursionDepth)
+        public readonly void Render()
         {
             var thisScene = this; // needed for the lambda function
             Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
             {
-                if (point.Y % lineSkipStep != 0)
+                if (point.Y % thisScene.RenderSettings.LineSkipStep != 0)
                 {
                     return;
                 }
@@ -122,7 +124,7 @@ namespace Common
                 {
                     var ray = thisScene.Camera.GetRayForPixel(x, point.Y);
 
-                    var pixelColor = Tracer.TraceRay(ray, thisScene, 0, maxRecursionDepth);
+                    var pixelColor = Tracer.TraceRay(ray, thisScene, 0, thisScene.RenderSettings.MaxRecursionDepth);
 
                     row[x] = pixelColor.ToVector4();
                 }

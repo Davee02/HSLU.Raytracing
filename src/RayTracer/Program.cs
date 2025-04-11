@@ -95,6 +95,7 @@ var scene = new Scene(outputDimensions)
         Intensity = 0.2f
     },
     BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
+    RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 3),
 };
 
 scene.Camera = new Camera(
@@ -108,14 +109,12 @@ scene.Camera = new Camera(
 scene.AddCube(new Vector3(1000, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.White, 0f, 20));
 scene.AddCube(new Vector3(700, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.Red, 0f, 20));
 
-var lineSkipStep = 1;
-var maxRecursionDepth = 4;
-
 Console.WriteLine(scene.PrintInfo());
-scene.Render(lineSkipStep, maxRecursionDepth);
+//scene.Render();
 var sw = Stopwatch.StartNew();
-var cams = CameraTools.CreateTrackingShotsAroundObject(scene.Camera, 100, 1000);
-var images = CameraTools.CreateImagesForCameras(scene, cams);
+var cams = RenderTools.CreateTrackingShotsAroundObject(scene.Camera, 100, 1000).ToArray();
+var images = RenderTools.CreateImagesForCameras(scene, cams).ToArray();
+var animatedGif = RenderTools.CreateAnimatedGif(images, 20);
 
 //await scene.Bitmap.SaveAsPngAsync(filePath);
 
@@ -126,6 +125,8 @@ foreach (var image in images)
 {
     await image.SaveAsPngAsync($"rastered_image_{imageIndex++}.png");
 }
+
+await animatedGif.SaveAsGifAsync("animated.gif");
 
 Console.WriteLine($"Finished rendering in {sw.ElapsedMilliseconds} ms");
 
