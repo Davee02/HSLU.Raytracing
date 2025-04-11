@@ -22,8 +22,11 @@ public static class Tracer
         // Calculate reflection ray
         var reflectionRay = new Ray(hit.Position, Vector3.Normalize(Vector3.Reflect(ray.Direction, hit.Normal)));
 
-        // Start with ambient light only
-        var pixelColor = scene.ComputeAmbientColor(hit.Material);
+        // Start with ambient light
+        var pixelColor = hit.Material.AmbientColor * scene.AmbientLight.Intensity;
+
+        // Add material's emissive component directly
+        pixelColor += hit.Material.EmissiveColor;
 
         // Accumulate contributions from all diffused lights
         var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor, float shadowFactor, Color shadowColor)>();
@@ -67,12 +70,10 @@ public static class Tracer
                     float tintStrength = 1 - shadowHit.Value.Material.Transparency;
 
                     // Tint the shadow with the object's color based on opacity
-                    // For a fully transparent object (transparency=1), shadowColor remains unchanged
-                    // For a partially transparent object, shadowColor gets partially tinted
                     shadowColor = new Color(
-                        shadowColor.R * (1 - tintStrength + shadowHit.Value.Material.Color.R * tintStrength),
-                        shadowColor.G * (1 - tintStrength + shadowHit.Value.Material.Color.G * tintStrength),
-                        shadowColor.B * (1 - tintStrength + shadowHit.Value.Material.Color.B * tintStrength)
+                        shadowColor.R * (1 - tintStrength + shadowHit.Value.Material.DiffuseColor.R * tintStrength),
+                        shadowColor.G * (1 - tintStrength + shadowHit.Value.Material.DiffuseColor.G * tintStrength),
+                        shadowColor.B * (1 - tintStrength + shadowHit.Value.Material.DiffuseColor.B * tintStrength)
                     );
 
                     // If almost no light is left, consider it completely in shadow
@@ -120,8 +121,11 @@ public static class Tracer
             var lightFactor = 1f / contributingLights.Count;
             foreach (var (light, diffuseFactor, specularFactor, shadowFactor, shadowColor) in contributingLights)
             {
-                var diffuseContribution = hit.Material.Color * diffuseFactor;
-                var specularContribution = light.Color * specularFactor;
+                // Use the material's diffuse color for diffuse component
+                var diffuseContribution = hit.Material.DiffuseColor * diffuseFactor;
+
+                // Use the material's specular color for specular highlights
+                var specularContribution = hit.Material.SpecularColor * light.Color * specularFactor;
 
                 // Apply both shadow factor and shadow color to the light contribution
                 pixelColor += light.Color * shadowColor * light.Intensity * shadowFactor * (diffuseContribution + specularContribution);
@@ -135,75 +139,91 @@ public static class Tracer
         Color reflectionColor = Color.Black;
         Color refractionColor = Color.Black;
 
-        // Calculate reflection color (if material is reflective)
-        if (hit.Material.Reflectivity > 0)
+        // Determine if we're entering or exiting the material
+        bool entering = Vector3.Dot(ray.Direction, hit.Normal) < 0;
+        Vector3 normal = entering ? hit.Normal : -hit.Normal;
+
+        // Set refractive indices based on whether we're entering or exiting
+        float n1, n2; // Refractive indices
+        if (entering)
+        {
+            n1 = 1.0f; // From air (or vacuum)
+            n2 = hit.Material.RefractionIndex; // To material
+        }
+        else
+        {
+            n1 = hit.Material.RefractionIndex; // From material
+            n2 = 1.0f; // To air (or vacuum)
+        }
+
+        // Calculate the cosine of the angle between ray direction and normal
+        float cosTheta = Math.Abs(Vector3.Dot(-ray.Direction, normal));
+
+        // Calculate Schlick's approximation for Fresnel factor
+        float r0 = (n1 - n2) / (n1 + n2);
+        r0 = r0 * r0;
+        float fresnel = r0 + (1 - r0) * MathF.Pow(1 - cosTheta, 5);
+
+        // Scale the Fresnel effect by the material's reflectivity
+        float effectiveReflectivity = hit.Material.Reflectivity;
+
+        // If material is transparent, calculate refraction
+        float sinT2 = 0;
+        bool totalInternalReflection = false;
+
+        if (hit.Material.Transparency > 0)
+        {
+            float eta = n1 / n2;
+            float cosI = Vector3.Dot(-ray.Direction, normal);
+            sinT2 = eta * eta * (1.0f - cosI * cosI);
+
+            // Check for total internal reflection
+            if (sinT2 >= 1.0f)
+            {
+                totalInternalReflection = true;
+            }
+        }
+
+        // Calculate reflection color if material reflects or has total internal reflection
+        if (effectiveReflectivity > 0 || totalInternalReflection)
         {
             reflectionColor = TraceRay(reflectionRay, scene, depth + 1, maxDepth);
         }
 
-        // Calculate refraction color (if material is transparent)
-        if (hit.Material.Transparency > 0)
+        // Calculate refraction color (if material is transparent and not total internal reflection)
+        if (hit.Material.Transparency > 0 && !totalInternalReflection)
         {
-            // Calculate refraction direction using Snell's law
-            Vector3 normal = hit.Normal;
-            float n1, n2; // Refractive indices
-
-            // Determine if we're entering or exiting the material
-            bool entering = Vector3.Dot(ray.Direction, normal) < 0;
-            if (!entering)
-            {
-                normal = -normal; // Flip normal if we're exiting
-            }
-
-            // Set refractive indices based on whether we're entering or exiting
-            if (entering)
-            {
-                n1 = 1.0f; // From air (or vacuum)
-                n2 = hit.Material.RefractionIndex; // To material
-            }
-            else
-            {
-                n1 = hit.Material.RefractionIndex; // From material
-                n2 = 1.0f; // To air (or vacuum)
-            }
-
             float eta = n1 / n2;
-            float cosI = Math.Abs(Vector3.Dot(ray.Direction, normal));
-            float sinT2 = eta * eta * (1.0f - cosI * cosI);
+            float cosI = Vector3.Dot(-ray.Direction, normal);
+            float cosT = MathF.Sqrt(1.0f - sinT2);
+            Vector3 refractionDirection = Vector3.Normalize(eta * ray.Direction + (eta * cosI - cosT) * normal);
 
-            // Handle refraction or total internal reflection
-            if (sinT2 < 1.0f)
-            {
-                // Refraction is possible
-                float cosT = MathF.Sqrt(1.0f - sinT2);
-                Vector3 refractionDirection = Vector3.Normalize(eta * ray.Direction + (eta * cosI - cosT) * normal);
-
-                // Create refraction ray with slight offset to avoid self-intersection
-                var refractionRay = new Ray(hit.Position + refractionDirection * 5*ITraceableObject.eps, refractionDirection);
-                refractionColor = TraceRay(refractionRay, scene, depth + 1, maxDepth);
-            }
-            else
-            {
-                // Total internal reflection - all light is reflected
-                refractionColor = reflectionColor;
-            }
+            // Create refraction ray with slight offset to avoid self-intersection
+            var refractionRay = new Ray(hit.Position + refractionDirection * 5 * ITraceableObject.eps, refractionDirection);
+            refractionColor = TraceRay(refractionRay, scene, depth + 1, maxDepth);
         }
 
-        // Combine the contributions from direct lighting, reflection, and refraction
-
-        // Handle reflection and refraction with simple linear blending
-        if (hit.Material.Reflectivity > 0)
+        // Combine contributions
+        if (totalInternalReflection)
         {
-            // Apply reflection based on reflectivity
-            pixelColor = directColor * (1 - hit.Material.Reflectivity) +
-                        reflectionColor * hit.Material.Reflectivity;
+            // Total internal reflection - 100% reflection
+            pixelColor = reflectionColor;
         }
-
-        if (hit.Material.Transparency > 0)
+        else
         {
-            // Apply refraction based on transparency
-            pixelColor = pixelColor * (1 - hit.Material.Transparency) +
-                        refractionColor * hit.Material.Transparency;
+            // Apply material reflectivity first (base reflection)
+            if (effectiveReflectivity > 0)
+            {
+                pixelColor = directColor * (1 - effectiveReflectivity) + reflectionColor * effectiveReflectivity;
+            }
+
+            // Then apply transparency if the material is transparent
+            if (hit.Material.Transparency > 0)
+            {
+                // Apply Fresnel factor to adjust transparency at grazing angles
+                float effectiveTransparency = hit.Material.Transparency * (1 - fresnel);
+                pixelColor = pixelColor * (1 - effectiveTransparency) + refractionColor * effectiveTransparency;
+            }
         }
 
         return pixelColor;

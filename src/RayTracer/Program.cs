@@ -1,14 +1,13 @@
 ﻿using Common;
 using SixLabors.ImageSharp;
 using System.Diagnostics;
-using SixLabors.ImageSharp.Processing;
 using System.Numerics;
 using RayTracer;
 
 const string filePath = "rastered_image.png";
 var outputDimensions = new Vector2(1280 / 2, 720 / 2);
 
-//using var scene = Scene.CreateCornellBoxScene();
+using var scene = Scene.CreateCornellBoxScene();
 //using var scene = new Scene(outputDimensions)
 //{
 //    DiffusedLights =
@@ -78,61 +77,51 @@ var outputDimensions = new Vector2(1280 / 2, 720 / 2);
 //var triangles = ObjImporter.ImportObj(@"C:\Users\David\Downloads\Untitled.obj", defaultMaterial);
 //scene.AddTriangles(triangles);
 
-var scene = new Scene(outputDimensions)
-{
-    DiffusedLights =
-    [
-        new Light
-        {
-            Color = new Common.Color(1, 0.9f, 0.8f), // Warm light
-            Position = new Vector3(1000, 200, -300),
-            Intensity = 0.7f,
-        }
-    ],
-    AmbientLight = new Light
-    {
-        Color = new Common.Color(1, 1, 1),
-        Intensity = 0.2f
-    },
-    BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
-    RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 3),
-};
+//var scene = new Scene(outputDimensions)
+//{
+//    DiffusedLights =
+//    [
+//        new Light
+//        {
+//            Color = new Common.Color(1, 0.9f, 0.8f), // Warm light
+//            Position = new Vector3(1000, 200, -300),
+//            Intensity = 0.7f,
+//        }
+//    ],
+//    AmbientLight = new Light
+//    {
+//        Color = new Common.Color(1, 1, 1),
+//        Intensity = 0.2f
+//    },
+//    BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
+//    RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 3),
+//};
 
-scene.Camera = new Camera(
-    position: new Vector3(scene.ImageSize.X, scene.ImageSize.Y, -300),
-    lookAt: new Vector3(1000, 500, 500),
-    up: new Vector3(0, -1, 0),
-    imageWidth: scene.ImageSize.X,
-    imageHeight: scene.ImageSize.Y,
-    fieldOfView: 60);
+//scene.Camera = new Camera(
+//    position: new Vector3(scene.ImageSize.X / 2, scene.ImageSize.Y / 2, -300),
+//    lookAt: new Vector3(scene.ImageSize.X / 2, scene.ImageSize.Y / 2, 500),
+//    up: new Vector3(0, -1, 0),
+//    imageWidth: scene.ImageSize.X,
+//    imageHeight: scene.ImageSize.Y,
+//    fieldOfView: 60);
 
-scene.AddCube(new Vector3(1000, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.White, 0f, 20));
-scene.AddCube(new Vector3(700, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.Red, 0f, 20));
+//scene.AddCube(new Vector3(1000, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.White, 0f, 20));
+//scene.AddCube(new Vector3(700, 300, 200), 100, new Vector3(0, 0, 0), new Material(Common.Color.Red, 0f, 20));
+
+//var triangles = ObjImporter.LoadFromFile(@"C:\Users\David\Downloads\blender_exported\Untitled.obj");
+//scene.AddTriangles(triangles);
 
 Console.WriteLine(scene.PrintInfo());
-//scene.Render();
+
 var sw = Stopwatch.StartNew();
-var cams = RenderTools.CreateTrackingShotsAroundObject(scene.Camera, 100, 1000).ToArray();
-var images = RenderTools.CreateImagesForCameras(scene, cams).ToArray();
-var animatedGif = RenderTools.CreateAnimatedGif(images, 20);
-
-//await scene.Bitmap.SaveAsPngAsync(filePath);
-
+scene.Render();
 sw.Stop();
-
-var imageIndex = 0;
-foreach (var image in images)
-{
-    await image.SaveAsPngAsync($"rastered_image_{imageIndex++}.png");
-}
-
-await animatedGif.SaveAsGifAsync("animated.gif");
 
 Console.WriteLine($"Finished rendering in {sw.ElapsedMilliseconds} ms");
 
-//await scene.Bitmap.SaveAsPngAsync(filePath);
+await scene.Bitmap.SaveAsPngAsync(filePath);
 
-// Open the image with the default image viewer
-//Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+//Open the image with the default image viewer
+Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
 
 scene.Dispose();
