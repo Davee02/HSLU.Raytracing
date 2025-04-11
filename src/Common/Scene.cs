@@ -91,7 +91,7 @@ namespace Common
 
         public Color ComputeAmbientColor(Material objectMaterial)
         {
-            return AmbientLight.Color * AmbientLight.Intensity * objectMaterial.Color;
+            return AmbientLight.Color * AmbientLight.Intensity * objectMaterial.DiffuseColor;
         }
 
         public void Dispose()

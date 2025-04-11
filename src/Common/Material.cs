@@ -1,7 +1,15 @@
 ﻿namespace Common;
-public struct Material(Color color, float reflectivity = 0f, float shininess = 0f, float transparency = 0f, float refractionIndex = 1f)
+public struct Material(Color diffuseColor, float reflectivity = 0f, float shininess = 0f, float transparency = 0f, float refractionIndex = 1f)
 {
-    public Color Color { get; set; } = color;
+    public string Name { get; set; } = string.Empty;
+
+    public Color DiffuseColor { get; set; } = diffuseColor;
+
+    public Color SpecularColor { get; set; } = Color.White;
+
+    public Color AmbientColor { get; set; } = Color.Black;
+
+    public Color EmissiveColor { get; set; } = Color.Black;
 
     public float Reflectivity { get; set; } = reflectivity;
 
