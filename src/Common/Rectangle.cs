@@ -36,19 +36,19 @@ namespace Common
 
             // Create the 8 corners of the box
             Vector3 frontCenter = position;
-            Vector3 backCenter = position + normal * thickness;
+            Vector3 backCenter = position + (normal * thickness);
 
             // Front face corners (when looking at front face)
-            Vector3 frontBL = frontCenter - widthDir * halfWidth - heightDir * halfHeight;
-            Vector3 frontBR = frontCenter + widthDir * halfWidth - heightDir * halfHeight;
-            Vector3 frontTR = frontCenter + widthDir * halfWidth + heightDir * halfHeight;
-            Vector3 frontTL = frontCenter - widthDir * halfWidth + heightDir * halfHeight;
+            Vector3 frontBL = frontCenter - (widthDir * halfWidth) - (heightDir * halfHeight);
+            Vector3 frontBR = frontCenter + (widthDir * halfWidth) - (heightDir * halfHeight);
+            Vector3 frontTR = frontCenter + (widthDir * halfWidth) + (heightDir * halfHeight);
+            Vector3 frontTL = frontCenter - (widthDir * halfWidth) + (heightDir * halfHeight);
 
             // Back face corners (when looking at back face)
-            Vector3 backBL = backCenter - widthDir * halfWidth - heightDir * halfHeight;
-            Vector3 backBR = backCenter + widthDir * halfWidth - heightDir * halfHeight;
-            Vector3 backTR = backCenter + widthDir * halfWidth + heightDir * halfHeight;
-            Vector3 backTL = backCenter - widthDir * halfWidth + heightDir * halfHeight;
+            Vector3 backBL = backCenter - (widthDir * halfWidth) - (heightDir * halfHeight);
+            Vector3 backBR = backCenter + (widthDir * halfWidth) - (heightDir * halfHeight);
+            Vector3 backTR = backCenter + (widthDir * halfWidth) + (heightDir * halfHeight);
+            Vector3 backTL = backCenter - (widthDir * halfWidth) + (heightDir * halfHeight);
 
             // Create all 12 triangles (2 for each face)
             _triangles = new Triangle[12];

@@ -59,15 +59,15 @@ namespace Common
 
             var invDet = 1.0f / determinant;
 
-            var a11 = (A22 * A33 - A23 * A32) * invDet;
-            var a12 = (A13 * A32 - A12 * A33) * invDet;
-            var a13 = (A12 * A23 - A13 * A22) * invDet;
-            var a21 = (A23 * A31 - A21 * A33) * invDet;
-            var a22 = (A11 * A33 - A13 * A31) * invDet;
-            var a23 = (A13 * A21 - A11 * A23) * invDet;
-            var a31 = (A21 * A32 - A22 * A31) * invDet;
-            var a32 = (A12 * A31 - A11 * A32) * invDet;
-            var a33 = (A11 * A22 - A12 * A21) * invDet;
+            var a11 = ((A22 * A33) - (A23 * A32)) * invDet;
+            var a12 = ((A13 * A32) - (A12 * A33)) * invDet;
+            var a13 = ((A12 * A23) - (A13 * A22)) * invDet;
+            var a21 = ((A23 * A31) - (A21 * A33)) * invDet;
+            var a22 = ((A11 * A33) - (A13 * A31)) * invDet;
+            var a23 = ((A13 * A21) - (A11 * A23)) * invDet;
+            var a31 = ((A21 * A32) - (A22 * A31)) * invDet;
+            var a32 = ((A12 * A31) - (A11 * A32)) * invDet;
+            var a33 = ((A11 * A22) - (A12 * A21)) * invDet;
 
             inverse = new Matrix3x3(a11, a12, a13, a21, a22, a23, a31, a32, a33);
             return true;

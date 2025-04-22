@@ -23,13 +23,13 @@ public static class Tracer
         var reflectionRay = new Ray(hit.Position, Vector3.Normalize(Vector3.Reflect(ray.Direction, hit.Normal)));
 
         // Start with ambient light
-        var pixelColor = hit.Material.AmbientColor * scene.AmbientLight.Intensity;
+        var pixelColor = hit.Material.AmbientColor * scene.AmbientLight.AttenuationC;
 
         // Add material's emissive component directly
         pixelColor += hit.Material.EmissiveColor;
 
         // Accumulate contributions from all diffused lights
-        var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor, float shadowFactor, Color shadowColor)>();
+        var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor, float shadowFactor, Color shadowColor, float attenuationFactor)>();
         foreach (var light in scene.DiffusedLights)
         {
             // Shadow ray from intersection to this light
@@ -37,6 +37,13 @@ public static class Tracer
             var shadowRay = new Ray(hit.Position, lightDirection);
 
             var lightDistance = (light.Position - hit.Position).Length();
+
+            // Calculate distance attenuation using the formula: 1/(a*d^2 + b*d + c)
+            float attenuationFactor = 1.0f / (
+                (light.AttenuationA * lightDistance * lightDistance) +
+                (light.AttenuationB * lightDistance) +
+                light.AttenuationC
+            );
 
             // Calculate shadow attenuation by tracing through transparent objects
             float shadowFactor = 1.0f; // Start with full light (no shadow)
@@ -71,9 +78,9 @@ public static class Tracer
 
                     // Tint the shadow with the object's color based on opacity
                     shadowColor = new Color(
-                        shadowColor.R * (1 - tintStrength + shadowHit.Value.Material.DiffuseColor.R * tintStrength),
-                        shadowColor.G * (1 - tintStrength + shadowHit.Value.Material.DiffuseColor.G * tintStrength),
-                        shadowColor.B * (1 - tintStrength + shadowHit.Value.Material.DiffuseColor.B * tintStrength)
+                        shadowColor.R * (1 - tintStrength + (shadowHit.Value.Material.DiffuseColor.R * tintStrength)),
+                        shadowColor.G * (1 - tintStrength + (shadowHit.Value.Material.DiffuseColor.G * tintStrength)),
+                        shadowColor.B * (1 - tintStrength + (shadowHit.Value.Material.DiffuseColor.B * tintStrength))
                     );
 
                     // If almost no light is left, consider it completely in shadow
@@ -86,7 +93,7 @@ public static class Tracer
 
                     // Continue the ray from the exit point
                     currentRay = new Ray(
-                        shadowHit.Value.Position + currentRay.Direction * ITraceableObject.eps * 10,
+                        shadowHit.Value.Position + (currentRay.Direction * ITraceableObject.eps * 10),
                         currentRay.Direction
                     );
                 }
@@ -110,16 +117,14 @@ public static class Tracer
                     specularFactor = MathF.Max(0, specularFactor);
                     specularFactor = MathF.Pow(specularFactor, hit.Material.Shininess);
 
-                    contributingLights.Add((light, diffuseFactor, specularFactor, shadowFactor, shadowColor));
+                    contributingLights.Add((light, diffuseFactor, specularFactor, shadowFactor, shadowColor, attenuationFactor));
                 }
             }
         }
 
         if (contributingLights.Count > 0)
         {
-            // Apply normalization factor
-            var lightFactor = 1f / contributingLights.Count;
-            foreach (var (light, diffuseFactor, specularFactor, shadowFactor, shadowColor) in contributingLights)
+            foreach (var (light, diffuseFactor, specularFactor, shadowFactor, shadowColor, attenuationFactor) in contributingLights)
             {
                 // Use the material's diffuse color for diffuse component
                 var diffuseContribution = hit.Material.DiffuseColor * diffuseFactor;
@@ -127,8 +132,8 @@ public static class Tracer
                 // Use the material's specular color for specular highlights
                 var specularContribution = hit.Material.SpecularColor * light.Color * specularFactor;
 
-                // Apply both shadow factor and shadow color to the light contribution
-                pixelColor += light.Color * shadowColor * light.Intensity * shadowFactor * (diffuseContribution + specularContribution);
+                // Apply shadow factor, shadow color, and distance attenuation to the light contribution
+                pixelColor += light.Color * shadowColor * shadowFactor * attenuationFactor * (diffuseContribution + specularContribution);
             }
         }
 
@@ -162,10 +167,10 @@ public static class Tracer
         // Calculate Schlick's approximation for Fresnel factor
         float r0 = (n1 - n2) / (n1 + n2);
         r0 = r0 * r0;
-        float fresnel = r0 + (1 - r0) * MathF.Pow(1 - cosTheta, 5);
+        float fresnel = r0 + ((1 - r0) * MathF.Pow(1 - cosTheta, 5));
 
         // Scale the Fresnel effect by the material's reflectivity
-        float effectiveReflectivity = hit.Material.Reflectivity;
+        float effectiveReflectivity = hit.Material.Reflectivity * fresnel;
 
         // If material is transparent, calculate refraction
         float sinT2 = 0;
@@ -175,7 +180,7 @@ public static class Tracer
         {
             float eta = n1 / n2;
             float cosI = Vector3.Dot(-ray.Direction, normal);
-            sinT2 = eta * eta * (1.0f - cosI * cosI);
+            sinT2 = eta * eta * (1.0f - (cosI * cosI));
 
             // Check for total internal reflection
             if (sinT2 >= 1.0f)
@@ -196,10 +201,10 @@ public static class Tracer
             float eta = n1 / n2;
             float cosI = Vector3.Dot(-ray.Direction, normal);
             float cosT = MathF.Sqrt(1.0f - sinT2);
-            Vector3 refractionDirection = Vector3.Normalize(eta * ray.Direction + (eta * cosI - cosT) * normal);
+            Vector3 refractionDirection = Vector3.Normalize((eta * ray.Direction) + (((eta * cosI) - cosT) * normal));
 
             // Create refraction ray with slight offset to avoid self-intersection
-            var refractionRay = new Ray(hit.Position + refractionDirection * 5 * ITraceableObject.eps, refractionDirection);
+            var refractionRay = new Ray(hit.Position + (refractionDirection * 5 * ITraceableObject.eps), refractionDirection);
             refractionColor = TraceRay(refractionRay, scene, depth + 1, maxDepth);
         }
 
@@ -214,7 +219,7 @@ public static class Tracer
             // Apply material reflectivity first (base reflection)
             if (effectiveReflectivity > 0)
             {
-                pixelColor = directColor * (1 - effectiveReflectivity) + reflectionColor * effectiveReflectivity;
+                pixelColor = (directColor * (1 - effectiveReflectivity)) + (reflectionColor * effectiveReflectivity);
             }
 
             // Then apply transparency if the material is transparent
@@ -222,7 +227,7 @@ public static class Tracer
             {
                 // Apply Fresnel factor to adjust transparency at grazing angles
                 float effectiveTransparency = hit.Material.Transparency * (1 - fresnel);
-                pixelColor = pixelColor * (1 - effectiveTransparency) + refractionColor * effectiveTransparency;
+                pixelColor = (pixelColor * (1 - effectiveTransparency)) + (refractionColor * effectiveTransparency);
             }
         }
 

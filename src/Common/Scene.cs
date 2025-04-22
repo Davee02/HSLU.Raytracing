@@ -91,7 +91,7 @@ namespace Common
 
         public Color ComputeAmbientColor(Material objectMaterial)
         {
-            return AmbientLight.Color * AmbientLight.Intensity * objectMaterial.DiffuseColor;
+            return AmbientLight.Color * AmbientLight.AttenuationC * objectMaterial.DiffuseColor;
         }
 
         public void Dispose()
@@ -137,8 +137,8 @@ namespace Common
             {
                 AmbientLight = new Light
                 {
-                    Color = new Common.Color(1, 1, 1),
-                    Intensity = 0.2f
+                    Color = new Color(1, 1, 1),
+                    AttenuationC = 0.2f
                 },
                 BackgroundColor = Color.Black
             };
@@ -149,7 +149,7 @@ namespace Common
             var roomCenter = new Vector3(1000, 500, 500);
 
             scene.Camera = new Camera(
-                position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - 2 * halfSize),
+                position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - (2 * halfSize)),
                 lookAt: new Vector3(1000, 500, 500),
                 up: new Vector3(0, -1, 0),
                 imageWidth: scene.ImageSize.X,
@@ -159,16 +159,10 @@ namespace Common
             // Add diffuse lights
             scene.DiffusedLights.Add(new Light
             {
-                Position = new Vector3(roomCenter.X, roomCenter.Y - halfSize * 0.8f, roomCenter.Z),
+                Position = new Vector3(roomCenter.X, roomCenter.Y - 200, 0),
                 Color = Color.White,
-                Intensity = 1.0f
-            });
-
-            scene.DiffusedLights.Add(new Light
-            {
-                Position = new Vector3(roomCenter.X, 1000, 900),
-                Color = Color.White,
-                Intensity = 0.6f
+                AttenuationA = 1e-6f,
+                AttenuationC = 0.7f,
             });
 
             // Materials for walls
@@ -225,25 +219,25 @@ namespace Common
 
             // White reflective sphere
             scene.AddSphere(
-                new Vector3(roomCenter.X - halfSize * 0.3f, roomCenter.Y + halfSize * 0.5f, roomCenter.Z),
+                new Vector3(roomCenter.X - (halfSize * 0.3f), roomCenter.Y + (halfSize * 0.5f), roomCenter.Z),
                 100,
                 new Material(Color.White, 0.7f, 50, 0f));
 
             // Transmissive sphere
             scene.AddSphere(
-                new Vector3(roomCenter.X + halfSize * 0.3f, roomCenter.Y + halfSize * 0.5f, 600),
+                new Vector3(roomCenter.X + (halfSize * 0.3f), roomCenter.Y + (halfSize * 0.5f), 600),
                 100,
                 new Material(Color.Red, 0f, 100, 0.9f, 1.2f));
 
             // Sphere behind transmissive sphere
             scene.AddSphere(
-                new Vector3(roomCenter.X + halfSize * 0.3f, roomCenter.Y + halfSize * 0.5f, 800),
+                new Vector3(roomCenter.X + (halfSize * 0.3f), roomCenter.Y + (halfSize * 0.5f), 800),
                 50,
                 new Material(Color.Green, 0f, 20, 0f));
 
             // Small cyan sphere
             scene.AddSphere(
-                new Vector3(roomCenter.X, roomCenter.Y + halfSize * 0.7f, roomCenter.Z - halfSize * 0.3f),
+                new Vector3(roomCenter.X, roomCenter.Y + (halfSize * 0.7f), roomCenter.Z - (halfSize * 0.3f)),
                 50,
                 new Material(Color.Cyan, 0f, 20, 0f));
 

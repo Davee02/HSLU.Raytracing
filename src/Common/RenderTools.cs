@@ -15,8 +15,8 @@ public static class RenderTools
         for (int i = 0; i < frames; i++)
         {
             var angle = i * angleStep;
-            var x = center.X + radius * MathF.Cos(angle);
-            var z = center.Z + radius * MathF.Sin(angle);
+            var x = center.X + (radius * MathF.Cos(angle));
+            var z = center.Z + (radius * MathF.Sin(angle));
             var camera = new Camera(
                 position: new Vector3(x, startCamera.Position.Y, z),
                 lookAt: center,

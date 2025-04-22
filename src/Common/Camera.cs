@@ -74,8 +74,8 @@ public readonly struct Camera
         Vector3 rayOrigin = Position;
         Vector3 rayDirection = Vector3.Normalize(
             Direction +
-            xworld * Right +
-            yworld * Up
+            (xworld * Right) +
+            (yworld * Up)
         );
 
         return new Ray(rayOrigin, rayDirection);
