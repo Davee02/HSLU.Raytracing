@@ -4,6 +4,8 @@ namespace Common;
 
 public readonly struct Camera
 {
+    public int SampleCount { get; } = 1;
+
     // Camera properties
     public Vector3 LookAt { get; }
 
@@ -32,8 +34,10 @@ public readonly struct Camera
     /// <summary>
     /// Creates a camera with specific position, look-at point, up vector, and view settings
     /// </summary>
-    public Camera(Vector3 position, Vector3 lookAt, Vector3 up, float fieldOfView, float imageWidth, float imageHeight)
+    public Camera(Vector3 position, Vector3 lookAt, Vector3 up, float fieldOfView, float imageWidth, float imageHeight, int sampleCount = 1)
     {
+        SampleCount = sampleCount;
+
         Position = position;
         FieldOfView = fieldOfView;
         LookAt = lookAt;
@@ -64,20 +68,39 @@ public readonly struct Camera
     /// <summary>
     /// Gets a ray for a specific pixel
     /// </summary>
-    public Ray GetRayForPixel(int pixelX, int pixelY)
+    public IEnumerable<Ray> GetRaysForPixel(int pixelX, int pixelY)
     {
-        // Convert pixel coordinates to world coordinates (as shown in the slides)
-        float xworld = (pixelX - ImageCenter.X) * (ViewWidth / ImageWidth);
-        float yworld = (ImageCenter.Y - pixelY) * (ViewHeight / ImageHeight); // Invert Y axis
+        for (int i = 0; i < SampleCount; i++)
+        {
+            // Generate random jitter offset within the pixel
+            var jitter = Vector2.Zero;
+            if (SampleCount > 1)
+            {
+                jitter = GetRandomVectorInUnitSquare();
+            }
 
-        // Calculate ray origin and direction
-        Vector3 rayOrigin = Position;
-        Vector3 rayDirection = Vector3.Normalize(
-            Direction +
-            (xworld * Right) +
-            (yworld * Up)
+            // Convert pixel coordinates to world coordinates
+            float xworld = ((pixelX + 0.5f + jitter.X) - ImageCenter.X) * (ViewWidth / ImageWidth);
+            float yworld = (ImageCenter.Y - (pixelY + 0.5f + jitter.Y)) * (ViewHeight / ImageHeight); // Invert Y axis
+
+            // Calculate ray origin and direction
+            Vector3 rayOrigin = Position;
+            Vector3 rayDirection = Vector3.Normalize(
+                Direction +
+                (xworld * Right) +
+                (yworld * Up)
+            );
+
+            yield return new Ray(rayOrigin, rayDirection);
+        }
+    }
+
+    private static Vector2 GetRandomVectorInUnitSquare()
+    {
+        // Generate a random point within a unit square (-0.5 to 0.5 in both dimensions)
+        return new Vector2(
+            Random.Shared.NextSingle() - 0.5f,
+            Random.Shared.NextSingle() - 0.5f
         );
-
-        return new Ray(rayOrigin, rayDirection);
     }
 }

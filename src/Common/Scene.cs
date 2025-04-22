@@ -122,9 +122,17 @@ namespace Common
 
                 for (int x = 0; x < row.Length; x++)
                 {
-                    var ray = thisScene.Camera.GetRayForPixel(x, point.Y);
+                    var rays = thisScene.Camera.GetRaysForPixel(x, point.Y).ToArray();
 
-                    var pixelColor = Tracer.TraceRay(ray, thisScene, 0, thisScene.RenderSettings.MaxRecursionDepth);
+                    var pixelColor = Color.Black;
+                    foreach (var ray in rays)
+                    {
+                        // Calculate the color for each ray
+                        pixelColor += Tracer.TraceRay(ray, thisScene, 0, thisScene.RenderSettings.MaxRecursionDepth);
+                        row[x] += pixelColor.ToVector4();
+                    }
+                    
+                    pixelColor /= rays.Length;
 
                     row[x] = pixelColor.ToVector4();
                 }
@@ -154,7 +162,8 @@ namespace Common
                 up: new Vector3(0, -1, 0),
                 imageWidth: scene.ImageSize.X,
                 imageHeight: scene.ImageSize.Y,
-                fieldOfView: 60);
+                fieldOfView: 60,
+                sampleCount: 1);
 
             // Add diffuse lights
             scene.DiffusedLights.Add(new Light

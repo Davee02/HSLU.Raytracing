@@ -25,13 +25,15 @@ namespace Common
 
         public static Color operator +(Color a, Color b) => new(a.R + b.R, a.G + b.G, a.B + b.B);
 
-        public Rgba32 ToRgba32() => new (R, G, B);
+        public readonly Rgba32 ToRgba32() => new (R, G, B);
 
-        public Vector4 ToVector4() => new(R, G, B, 1);
+        public readonly Vector4 ToVector4() => new(R, G, B, 1);
 
         public static Color operator *(Color color, float scalar) => new(color.R * scalar, color.G * scalar, color.B * scalar);
 
         public static Color operator *(Color color, int scalar) => new(color.R * scalar, color.G * scalar, color.B * scalar);
+
+        public static Color operator /(Color color, int scalar) => new(color.R / scalar, color.G / scalar, color.B / scalar);
 
         public static Color operator *(Color color1, Color color2) => new(color1.R * color2.R, color1.G * color2.G, color1.B * color2.B);
 
@@ -64,7 +66,7 @@ namespace Common
         /// 0.299 * R + 0.587 * G + 0.114 * B
         /// </summary>
         /// <returns></returns>
-        public float GetBrightness()
+        public readonly float GetBrightness()
         {
             // Human perception weights: R=0.299, G=0.587, B=0.114
             return (0.299f * R) + (0.587f * G) + (0.114f * B);
