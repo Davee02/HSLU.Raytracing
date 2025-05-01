@@ -44,7 +44,6 @@ namespace Common
             TraceableObjects.Add(plane);
         }
 
-
         public readonly void AddTriangle(Vector3 origin, Vector3 v, Vector3 w, Material material)
         {
             AddTriangle(new Triangle(origin, v, w, material));
@@ -99,7 +98,7 @@ namespace Common
             Bitmap?.Dispose();
         }
 
-        public string PrintInfo()
+        public readonly string PrintInfo()
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Image resolution: {ImageSize.X}x{ImageSize.Y}");
@@ -109,10 +108,47 @@ namespace Common
             return sb.ToString();
         }
 
-
         public readonly void Render()
         {
+            Console.WriteLine(PrintInfo());
+
+            int totalRows = Bitmap.Height / RenderSettings.LineSkipStep;
+
+            using var progressBar = new EnhancedProgressBar(
+                totalRows,
+                $"Rendering {ImageSize.X}x{ImageSize.Y} image",
+                80,
+                true);
+
+#if DEBUG
+    int rowsCompleted = 0;
+
+    for (int y = 0; y < Bitmap.Height; y++)
+    {
+        if (y % RenderSettings.LineSkipStep != 0)
+        {
+            continue;
+        }
+
+        for (int x = 0; x < Bitmap.Width; x++)
+        {
+            var rays = Camera.GetRaysForPixel(x, y).ToArray();
+            var ray = rays[0];
+
+            var pixelColor = Tracer.TraceRay(ray, this, 0, RenderSettings.MaxRecursionDepth);
+            Bitmap[x, y] = pixelColor.ToRgba32();
+        }
+        
+        rowsCompleted++;
+        progressBar.Update(rowsCompleted);
+    }
+#else
             var thisScene = this; // needed for the lambda function
+
+            // Use thread-safe counter for parallel processing
+            int completedRows = 0;
+            object lockObj = new();
+
             Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
             {
                 if (point.Y % thisScene.RenderSettings.LineSkipStep != 0)
@@ -131,132 +167,20 @@ namespace Common
                         pixelColor += Tracer.TraceRay(ray, thisScene, 0, thisScene.RenderSettings.MaxRecursionDepth);
                         row[x] += pixelColor.ToVector4();
                     }
-                    
+
                     pixelColor /= rays.Length;
 
                     row[x] = pixelColor.ToVector4();
                 }
-            }));
-        }
 
-        public static Scene CreateCornellBoxScene()
-        {
-            var scene = new Scene(new Vector2(1280f / 2, 720f / 2))
-            {
-                AmbientLight = new Light
+                // Update progress in a thread-safe way
+                if (point.Y % thisScene.RenderSettings.LineSkipStep == 0)
                 {
-                    Color = new Color(1, 1, 1),
-                    AttenuationC = 0.2f
-                },
-                BackgroundColor = Color.Black
-            };
-
-            // Room dimensions
-            float roomSize = 800f;
-            float halfSize = roomSize / 2f;
-            var roomCenter = new Vector3(1000, 500, 500);
-
-            scene.Camera = new Camera(
-                position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - (2 * halfSize)),
-                lookAt: new Vector3(1000, 500, 500),
-                up: new Vector3(0, -1, 0),
-                imageWidth: scene.ImageSize.X,
-                imageHeight: scene.ImageSize.Y,
-                fieldOfView: 60,
-                sampleCount: 1);
-
-            // Add diffuse lights
-            scene.DiffusedLights.Add(new Light
-            {
-                Position = new Vector3(roomCenter.X, roomCenter.Y - 200, 0),
-                Color = Color.White,
-                AttenuationA = 1e-6f,
-                AttenuationC = 0.7f,
-            });
-
-            // Materials for walls
-            var redMaterial = new Material(Color.Red, 0.2f, 20, 0f);
-            var greenMaterial = new Material(Color.Green, 0.2f, 20, 0f);
-            var whiteMaterial = new Material(Color.White, 0f, 20, 0f);
-            var glassMaterial = new Material(new Color(0.8f, 0.8f, 1.0f), 0.1f, 50, 0.8f, 10.5f);
-            var cyanMaterial = new Material(Color.Cyan, 0.2f, 20, 0f);
-            var yellowMaterial = new Material(Color.Yellow, 0.2f, 20, 0f);
-
-            // Create the walls of the Cornell box
-
-            // Back wall (transparent white)
-            scene.AddRectangle(Rectangle.CreateWall(
-                new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z + halfSize),
-                new Vector3(0, 0, -1),
-                roomSize,
-                50,
-                glassMaterial));
-
-            // Left wall (purple)
-            scene.AddRectangle(Rectangle.CreateWall(
-                new Vector3(roomCenter.X - halfSize, roomCenter.Y, roomCenter.Z),
-                new Vector3(1, 0, 0),
-                roomSize,
-                5,
-                redMaterial));
-
-            // Right wall (yellow)
-            scene.AddRectangle(Rectangle.CreateWall(
-                new Vector3(roomCenter.X + halfSize, roomCenter.Y, roomCenter.Z),
-                new Vector3(-1, 0, 0),
-                roomSize,
-                5,
-                yellowMaterial));
-
-            // Floor (white)
-            scene.AddRectangle(Rectangle.CreateWall(
-                new Vector3(roomCenter.X, roomCenter.Y + halfSize, roomCenter.Z),
-                new Vector3(0, -1, 0),
-                roomSize,
-                5,
-                whiteMaterial));
-
-            // Ceiling (cyan)
-            scene.AddRectangle(Rectangle.CreateWall(
-                new Vector3(roomCenter.X, roomCenter.Y - halfSize, roomCenter.Z),
-                new Vector3(0, 1, 0),
-                roomSize,
-                5,
-                cyanMaterial));
-
-            // Add spheres
-
-            // White reflective sphere
-            scene.AddSphere(
-                new Vector3(roomCenter.X - (halfSize * 0.3f), roomCenter.Y + (halfSize * 0.5f), roomCenter.Z),
-                100,
-                new Material(Color.White, 0.7f, 50, 0f));
-
-            // Transmissive sphere
-            scene.AddSphere(
-                new Vector3(roomCenter.X + (halfSize * 0.3f), roomCenter.Y + (halfSize * 0.5f), 600),
-                100,
-                new Material(Color.Red, 0f, 100, 0.9f, 1.2f));
-
-            // Sphere behind transmissive sphere
-            scene.AddSphere(
-                new Vector3(roomCenter.X + (halfSize * 0.3f), roomCenter.Y + (halfSize * 0.5f), 800),
-                50,
-                new Material(Color.Green, 0f, 20, 0f));
-
-            // Small cyan sphere
-            scene.AddSphere(
-                new Vector3(roomCenter.X, roomCenter.Y + (halfSize * 0.7f), roomCenter.Z - (halfSize * 0.3f)),
-                50,
-                new Material(Color.Cyan, 0f, 20, 0f));
-
-            // Blue sphere in the back
-            scene.AddSphere(
-                new Vector3(roomCenter.X, 500, 1000),
-                100,
-                new Material(Color.Blue, 0f, 20, 0f));
-
-            return scene;
+                    int newCompletedRows = Interlocked.Increment(ref completedRows);
+                    progressBar.Update(newCompletedRows);
+                }
+            }));
+#endif
         }
     }
 }

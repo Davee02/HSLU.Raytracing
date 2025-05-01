@@ -26,7 +26,7 @@ public static class Tracer
         var pixelColor = hit.Material.AmbientColor * scene.AmbientLight.AttenuationC;
 
         // Add material's emissive component directly
-        pixelColor += hit.Material.EmissiveColor;
+        //pixelColor += hit.Material.EmissiveColor;
 
         // Accumulate contributions from all diffused lights
         var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor, float shadowFactor, Color shadowColor, float attenuationFactor)>();
