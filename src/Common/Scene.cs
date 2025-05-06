@@ -1,4 +1,5 @@
-﻿using SixLabors.ImageSharp;
+﻿using Common.Objects;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System.Numerics;
@@ -8,13 +9,15 @@ namespace Common
 {
     public struct Scene(Vector2 imageSize) : IDisposable
     {
+        private BVH.BVH? bvh = null;
+
         public RenderSettings RenderSettings { get; set; } = new();
 
         public Vector2 ImageSize { get; } = imageSize;
 
         public List<Sphere> Spheres { get; } = [];
 
-        public List<Plane> Planes { get; } = [];
+        public List<Objects.Plane> Planes { get; } = [];
 
         public List<Triangle> Triangles { get; } = [];
 
@@ -30,6 +33,13 @@ namespace Common
 
         public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>((int)imageSize.X, (int)imageSize.Y);
 
+        public readonly BVH.BVH? BVH => bvh;
+
+        public void BuildBVH()
+        {
+            bvh = new BVH.BVH(TraceableObjects);
+        }
+
         public readonly void AddSphere(Vector3 center, float radius, Material color) 
         {
             var sphere = new Sphere(center, radius, color);
@@ -39,7 +49,7 @@ namespace Common
 
         public readonly void AddPlane(Vector3 position, Vector3 rotationAnglesDegrees, Material material)
         {
-            var plane = new Plane(position, rotationAnglesDegrees, material);
+            var plane = new Objects.Plane(position, rotationAnglesDegrees, material);
             Planes.Add(plane);
             TraceableObjects.Add(plane);
         }
@@ -67,11 +77,11 @@ namespace Common
 
         public readonly void AddRectangle(Vector3 position, Vector3 normal, Vector3 up, float width, float height, float thickness, Material material)
         {
-            var rectangle = new Rectangle(position, normal, up, width, height, thickness, material);
+            var rectangle = new Objects.Rectangle(position, normal, up, width, height, thickness, material);
             AddRectangle(rectangle);
         }
 
-        public readonly void AddRectangle(Rectangle rectangle)
+        public readonly void AddRectangle(Objects.Rectangle rectangle)
         {
             foreach (var triangle in rectangle.Triangles)
             {
@@ -108,9 +118,13 @@ namespace Common
             return sb.ToString();
         }
 
-        public readonly void Render()
+        public void Render()
         {
             Console.WriteLine(PrintInfo());
+
+            Console.WriteLine("Building BVH...");
+            BuildBVH();
+            Console.WriteLine($"BVH built with depth {BVH.Depth}");
 
             int totalRows = Bitmap.Height / RenderSettings.LineSkipStep;
 

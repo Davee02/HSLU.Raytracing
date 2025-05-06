@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using Common.Objects;
+using System.Numerics;
 
 namespace Common;
 public static class SceneCreator
@@ -62,7 +63,7 @@ public static class SceneCreator
         scene.AddSphere(new Vector3(300, 370, 250), 50, cyanMaterial);
 
         // Right wall (yellow)
-        scene.AddRectangle(Common.Rectangle.CreateWall(
+        scene.AddRectangle(Objects.Rectangle.CreateWall(
             new Vector3(roomCenter.X + halfSize, roomCenter.Y, roomCenter.Z),
             new Vector3(-1, 0, 0),
             roomSize,
@@ -70,7 +71,7 @@ public static class SceneCreator
             yellowMaterial));
 
         // Floor (white)
-        scene.AddRectangle(Common.Rectangle.CreateWall(
+        scene.AddRectangle(Objects.Rectangle.CreateWall(
             new Vector3(roomCenter.X, roomCenter.Y + halfSize, roomCenter.Z),
             new Vector3(0, -1, 0),
             roomSize,
@@ -78,7 +79,7 @@ public static class SceneCreator
             whiteMaterial));
 
         // Back wall (white)
-        scene.AddRectangle(Common.Rectangle.CreateWall(
+        scene.AddRectangle(Objects.Rectangle.CreateWall(
             new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z + halfSize),
             new Vector3(0, 0, -1),
             roomSize,

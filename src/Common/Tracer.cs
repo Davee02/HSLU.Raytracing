@@ -1,17 +1,24 @@
-﻿using System.Numerics;
+﻿using Common.BVH;
+using Common.Objects;
+using System.Numerics;
 
 namespace Common;
 public static class Tracer
 {
     public static Color TraceRay(Ray ray, Scene scene, int depth, int maxDepth)
     {
+        if (scene.BVH == null)
+        {
+            throw new InvalidOperationException("BVH is not built. Call BuildBVH() before tracing rays.");
+        }
+
         // Base case: if we've reached max recursion depth, return background color
         if (depth > maxDepth)
         {
             return scene.BackgroundColor;
         }
 
-        var closestHit = FindClosestObject(ray, scene);
+        var closestHit = FindClosestObjectUsingBVH(ray, scene.BVH.Root);
         if (!closestHit.HasValue)
         {
             return scene.BackgroundColor;
@@ -24,9 +31,6 @@ public static class Tracer
 
         // Start with ambient light
         var pixelColor = hit.Material.AmbientColor * scene.AmbientLight.AttenuationC;
-
-        // Add material's emissive component directly
-        //pixelColor += hit.Material.EmissiveColor;
 
         // Accumulate contributions from all diffused lights
         var contributingLights = new List<(Light light, float diffuseFactor, float specularFactor, float shadowFactor, Color shadowColor, float attenuationFactor)>();
@@ -56,7 +60,7 @@ public static class Tracer
             // Limit the number of transparent objects we'll process to avoid infinite loops
             for (int shadowDepth = 0; shadowDepth < maxDepth; shadowDepth++)
             {
-                var shadowHit = FindClosestObject(currentRay, scene);
+                var shadowHit = FindClosestObjectUsingBVH(currentRay, scene.BVH.Root);
 
                 // If we hit nothing or we've gone beyond the light, we're done
                 if (!shadowHit.HasValue || distanceCovered + shadowHit.Value.Lambda > lightDistance)
@@ -234,18 +238,86 @@ public static class Tracer
         return pixelColor;
     }
 
-    internal static Hit? FindClosestObject(Ray ray, Scene scene)
+    private static Hit? FindClosestObjectUsingBVH(Ray ray, BVHNode node)
     {
-        Hit hit = default;
-        Hit? closestHit = default;
+        // Check if ray intersects this node's bounding box
+        if (!node.BoundingBox.Intersect(ray, out float tMin, out float tMax) || tMax < 0)
+        {
+            return null; // No intersection with bounding box
+        }
+
+        Hit? closestHit = null;
         float closestLambda = float.MaxValue;
 
-        foreach (var obj in scene.TraceableObjects)
+        if (node.Objects != null)
         {
-            if (obj.TryIntersect(ray, ref hit) && hit.Lambda < closestLambda)
+            // Leaf node - test all objects
+            Hit hit = default;
+            foreach (var obj in node.Objects)
             {
-                closestHit = hit;
-                closestLambda = hit.Lambda;
+                if (obj.TryIntersect(ray, ref hit) && hit.Lambda < closestLambda)
+                {
+                    closestHit = hit;
+                    closestLambda = hit.Lambda;
+                }
+            }
+        }
+        else if (node.Left != null && node.Right != null)
+        {
+            // Internal node - recursively check children
+            // First check the child node whose bounding box is closer
+
+            // Get intersections with child bounding boxes
+            bool leftHit = node.Left.BoundingBox.Intersect(ray, out float leftTMin, out _);
+            bool rightHit = node.Right.BoundingBox.Intersect(ray, out float rightTMin, out _);
+
+            // Check intersections based on distance
+            Hit? leftClosest = null;
+            Hit? rightClosest = null;
+
+            // Check the closer box first, as it might give us a hit that lets us skip the farther box
+            if (leftHit && rightHit)
+            {
+                if (leftTMin < rightTMin)
+                {
+                    // Left is closer, check it first
+                    leftClosest = FindClosestObjectUsingBVH(ray, node.Left);
+
+                    // Only check right if needed
+                    if (leftClosest == null || rightTMin < leftClosest.Value.Lambda)
+                    {
+                        rightClosest = FindClosestObjectUsingBVH(ray, node.Right);
+                    }
+                }
+                else
+                {
+                    // Right is closer, check it first
+                    rightClosest = FindClosestObjectUsingBVH(ray, node.Right);
+
+                    // Only check left if needed
+                    if (rightClosest == null || leftTMin < rightClosest.Value.Lambda)
+                    {
+                        leftClosest = FindClosestObjectUsingBVH(ray, node.Left);
+                    }
+                }
+            }
+            else if (leftHit)
+            {
+                leftClosest = FindClosestObjectUsingBVH(ray, node.Left);
+            }
+            else if (rightHit)
+            {
+                rightClosest = FindClosestObjectUsingBVH(ray, node.Right);
+            }
+
+            // Determine the closest hit from children
+            if (leftClosest.HasValue && rightClosest.HasValue)
+            {
+                closestHit = leftClosest.Value.Lambda < rightClosest.Value.Lambda ? leftClosest : rightClosest;
+            }
+            else
+            {
+                closestHit = leftClosest ?? rightClosest;
             }
         }
 

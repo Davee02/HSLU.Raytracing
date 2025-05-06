@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using Common.Objects;
+using System.Numerics;
 
 namespace Common
 {

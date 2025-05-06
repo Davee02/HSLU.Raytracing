@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Common
+namespace Common.Objects
 {
     public readonly struct Triangle(Vector3 origin, Vector3 v, Vector3 w, Vector3 normal, Material material) : ITraceableObject
     {
@@ -45,7 +45,7 @@ namespace Common
             }
 
             lambda -= ITraceableObject.eps; // move the intersection point a bit towards the camera to avoid self-intersection
-            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
+            var intersectionPoint = ray.Origin + ray.Direction * lambda;
 
             // Use the provided normal instead of calculating it
             var surfaceNormal = Normal;

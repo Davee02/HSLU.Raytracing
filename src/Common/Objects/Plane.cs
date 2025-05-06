@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Common
+namespace Common.Objects
 {
     public readonly struct Plane(Vector3 position, Vector3 rotationAnglesDegrees, Material material) : ITraceableObject
     {
@@ -55,7 +55,7 @@ namespace Common
 
             lambda -= ITraceableObject.eps; // move the intersection point a bit towards the camera to avoid self-intersection
 
-            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
+            var intersectionPoint = ray.Origin + ray.Direction * lambda;
             hit = new Hit(intersectionPoint, Normal, Material, lambda);
 
             return true;

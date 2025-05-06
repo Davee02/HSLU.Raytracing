@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Common
+namespace Common.Objects
 {
     public readonly struct Cube
     {
