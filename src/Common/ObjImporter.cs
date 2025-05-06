@@ -200,17 +200,7 @@ public static class ObjImporter
                             else if (faceIndices.Count > 3) // Polygon with more than 3 vertices
                             {
                                 throw new NotImplementedException("Polygon triangulation is not implemented. Please provide a triangulated mesh.");
-                                // Triangulate the polygon (fan triangulation)
-                                //for (int i = 1; i < faceIndices.Count - 1; i++)
-                                //{
-                                //    var triangleIndices = new List<(int, int)>
-                                //        {
-                                //            faceIndices[0],
-                                //            faceIndices[i],
-                                //            faceIndices[i + 1]
-                                //        };
-                                //    CreateTriangle(vertices, normals, triangleIndices, currentMaterial, objects);
-                                //}
+
                             }
                         }
                         break;
@@ -267,8 +257,6 @@ public static class ObjImporter
 
         if (indices[0].normalIndex >= 0 && indices[1].normalIndex >= 0 && indices[2].normalIndex >= 0)
         {
-            // If the triangle has vertex normals, we'll average them for flat shading
-            // For smooth shading, you'd need to interpolate normals at runtime based on barycentric coordinates
             normal = Vector3.Normalize(
                 normals[indices[0].normalIndex] +
                 normals[indices[1].normalIndex] +
@@ -278,8 +266,6 @@ public static class ObjImporter
         else
         {
             throw new Exception("No normals provided for triangle vertices. Cannot create triangle.");
-            // Calculate normal if not provided
-            //normal = Vector3.Normalize(Vector3.Cross(w, v));
         }
 
         return new Triangle(origin, v, w, normal, material);
