@@ -23,19 +23,23 @@ namespace Common.Objects
         public bool TryIntersect(Ray ray, ref Hit hit)
         {
             var u = ray.Direction;
-            var A = new Matrix3x3(
-                u.X, -V.X, -W.X,
-                u.Y, -V.Y, -W.Y,
-                u.Z, -V.Z, -W.Z);
+            var A = new Matrix4x4(
+                u.X, -V.X, -W.X, 0,
+                u.Y, -V.Y, -W.Y, 0,
+                u.Z, -V.Z, -W.Z, 0,
+                0, 0, 0, 1);
             var B = Origin - ray.Origin;
 
-            var hasInverse = A.TryInverse(out var inverse);
+            var hasInverse = Matrix4x4.Invert(A, out var inverse);
             if (!hasInverse)
             {
                 return false;
             }
 
-            var tmp = inverse.Multiply(B);
+            var tmp = new Vector3(
+                inverse.M11 * B.X + inverse.M12 * B.Y + inverse.M13 * B.Z,
+                inverse.M21 * B.X + inverse.M22 * B.Y + inverse.M23 * B.Z,
+                inverse.M31 * B.X + inverse.M32 * B.Y + inverse.M33 * B.Z);
             var (lambda, tau, mu) = (tmp.X, tmp.Y, tmp.Z);
 
             var intersects = lambda > 0 && tau >= 0 && mu >= 0 && tau + mu <= 1;

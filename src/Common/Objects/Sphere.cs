@@ -1,7 +1,6 @@
-﻿using Common.Objects;
-using System.Numerics;
+﻿using System.Numerics;
 
-namespace Common
+namespace Common.Objects
 {
     public readonly struct Sphere(Vector3 center, float radius, Material material) : ITraceableObject
     {
@@ -16,9 +15,9 @@ namespace Common
             var v = ray.Origin - Center;
             var a = Vector3.Dot(ray.Direction, ray.Direction);
             var b = 2 * Vector3.Dot(v, ray.Direction);
-            var c = Vector3.Dot(v, v) - (Radius * Radius);
+            var c = Vector3.Dot(v, v) - Radius * Radius;
 
-            var discriminant = (b * b) - (4 * a * c);
+            var discriminant = b * b - 4 * a * c;
             if (discriminant < 0)
             {
                 return false;
@@ -54,7 +53,7 @@ namespace Common
             // Apply epsilon in the right direction based on whether we're entering or exiting
             lambda = entering ? lambda - ITraceableObject.eps : lambda + ITraceableObject.eps;
 
-            var intersectionPoint = ray.Origin + (ray.Direction * lambda);
+            var intersectionPoint = ray.Origin + ray.Direction * lambda;
             var surfaceNormal = Vector3.Normalize(intersectionPoint - Center);
 
             // Ensure normal points against the ray direction for correct shading

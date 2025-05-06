@@ -17,19 +17,19 @@ public static class SceneCreator
             DiffusedLights =
             [
                 new Light
-        {
-            Color = new Common.Color(1, 0.9f, 0.8f),
-            Position = new Vector3(outputDimensions.X / 2, 500, -250),
-            AttenuationA = 1e-6f,
-            AttenuationC = 1f,
-        },
-        new Light
-        {
-            Color = Common.Color.White,
-            Position = new Vector3(roomCenter.X, roomCenter.Y - 200, 0),
-            AttenuationA = 1e-6f,
-            AttenuationC = 0.7f,
-        }
+                {
+                    Color = new Common.Color(1, 0.9f, 0.8f),
+                    Position = new Vector3(outputDimensions.X / 2, 500, -250),
+                    AttenuationA = 1e-6f,
+                    AttenuationC = 1f,
+                },
+                new Light
+                {
+                    Color = Common.Color.White,
+                    Position = new Vector3(roomCenter.X, roomCenter.Y - 200, 0),
+                    AttenuationA = 1e-6f,
+                    AttenuationC = 0.7f,
+                }
             ],
             AmbientLight = new Light
             {
