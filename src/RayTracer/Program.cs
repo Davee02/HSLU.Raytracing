@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 const string filePath = "rastered_image.png";
 
-var scene = SceneCreator.CreateFinalScene();
+var scene = SceneCreator.CreateContestScene();
 
 scene.Render();
 

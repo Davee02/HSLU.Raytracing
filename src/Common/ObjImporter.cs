@@ -5,7 +5,7 @@ using System.Numerics;
 namespace Common;
 public static class ObjImporter
 {
-    public static IEnumerable<Material> LoadMaterialsFromFile(string filePath)
+    public static IEnumerable<Material> LoadMaterialsFromFile(string filePath, Func<Material, Material>? materialReplacer = null)
     {
         try
         {
@@ -29,6 +29,7 @@ public static class ObjImporter
                     case "newmtl":
                         if (materialStarted)
                         {
+                            currentMaterial = materialReplacer?.Invoke(currentMaterial) ?? currentMaterial;
                             materials.Add(currentMaterial);
                         }
 
@@ -91,6 +92,7 @@ public static class ObjImporter
 
             if (materialStarted)
             {
+                currentMaterial = materialReplacer?.Invoke(currentMaterial) ?? currentMaterial;
                 materials.Add(currentMaterial);
             }
 
@@ -103,7 +105,7 @@ public static class ObjImporter
         }
     }
 
-    public static IEnumerable<Triangle> LoadFromFile(string objFilePath)
+    public static IEnumerable<Triangle> LoadFromFile(string objFilePath, Func<Material, Material>? materialReplacer = null)
     {
         if (string.IsNullOrEmpty(objFilePath) || !File.Exists(objFilePath))
         {
@@ -140,7 +142,7 @@ public static class ObjImporter
                             string mtlFilePath = Path.Combine(objDirectory, parts[1]);
                             if (File.Exists(mtlFilePath))
                             {
-                                var loadedMaterials = LoadMaterialsFromFile(mtlFilePath);
+                                var loadedMaterials = LoadMaterialsFromFile(mtlFilePath, materialReplacer);
                                 materials = loadedMaterials.ToDictionary(m => m.Name, m => m);
                             }
                             else
@@ -184,8 +186,8 @@ public static class ObjImporter
                                 // Handle normal index if present
                                 int normalIndex = -1;
                                 if (indices.Length >= 3 && !string.IsNullOrEmpty(indices[2]))
-                                { 
-                                    normalIndex = int.Parse(indices[2]) - 1; 
+                                {
+                                    normalIndex = int.Parse(indices[2]) - 1;
                                 }
 
                                 faceIndices.Add((vertexIndex, normalIndex));
@@ -194,13 +196,12 @@ public static class ObjImporter
                             // Create triangles for triangulated mesh
                             if (faceIndices.Count == 3) // It's already a triangle
                             {
-                                 var triangle = CreateTriangle(vertices, normals, faceIndices, currentMaterial);
+                                var triangle = CreateTriangle(vertices, normals, faceIndices, currentMaterial);
                                 triangles.Add(triangle);
                             }
                             else if (faceIndices.Count > 3) // Polygon with more than 3 vertices
                             {
                                 throw new NotImplementedException("Polygon triangulation is not implemented. Please provide a triangulated mesh.");
-
                             }
                         }
                         break;
@@ -271,4 +272,3 @@ public static class ObjImporter
         return new Triangle(origin, v, w, normal, material);
     }
 }
-
