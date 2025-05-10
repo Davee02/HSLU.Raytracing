@@ -2,7 +2,6 @@
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 
 namespace Common;
 public static class RenderTools
@@ -17,7 +16,7 @@ public static class RenderTools
             var angle = i * angleStep;
             var x = center.X + (radius * MathF.Cos(angle));
             var z = center.Z + (radius * MathF.Sin(angle));
-            var camera = new Camera(
+            var camera = Camera.FromLookAt(
                 position: new Vector3(x, startCamera.Position.Y, z),
                 lookAt: center,
                 up: startCamera.Up,

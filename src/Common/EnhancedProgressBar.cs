@@ -1,127 +1,111 @@
-﻿using System.Diagnostics;
-
-namespace Common
+﻿public delegate void RenderProgressCallback(float progress);
+public class EnhancedProgressBar : IDisposable
 {
-    public class EnhancedProgressBar : IDisposable
+    private readonly int _total;
+    private readonly string _description;
+    private readonly int _width;
+    private readonly bool _showAnimation;
+    private readonly RenderProgressCallback? _progressCallback;
+    private int _current;
+    private readonly DateTime _startTime;
+    private readonly Lock _lock = new();
+    private const string Animation = @"|/-\";
+    private int _lastProgressBarLength = 0;
+
+    public EnhancedProgressBar(int total, string description, int width = 30, bool showAnimation = true, RenderProgressCallback? progressCallback = null)
     {
-        private readonly int _totalTicks;
-        private readonly int _barSize;
-        private int _currentTick;
-        private readonly Stopwatch _stopwatch;
-        private bool _disposed;
-        private readonly string _taskName;
-        private readonly Timer _refreshTimer;
-        private int _fps;
-        private int _lastPercent;
-        private readonly bool _showDetails;
+        _total = total;
+        _description = description;
+        _width = width;
+        _showAnimation = showAnimation;
+        _progressCallback = progressCallback;
+        _startTime = DateTime.Now;
+        _current = 0;
+        // Draw initial progress bar
+        Draw();
+    }
 
-        public EnhancedProgressBar(int totalTicks, string taskName = "Rendering", int barSize = 40, bool showDetails = true)
+    public void Update(int current)
+    {
+        _lock.Enter();
+        _current = current;
+        Draw();
+        // Also call the progress callback if provided
+        float progress = (float)_current / _total;
+        _progressCallback?.Invoke(progress);
+        _lock.Exit();
+    }
+
+    private void Draw()
+    {
+        if (!Console.IsOutputRedirected)
         {
-            _totalTicks = totalTicks;
-            _barSize = barSize;
-            _currentTick = 0;
-            _stopwatch = Stopwatch.StartNew();
-            _taskName = taskName;
-            _disposed = false;
-            _fps = 0;
-            _lastPercent = 0;
-            _showDetails = showDetails;
+            // Calculate progress percentage
+            float percent = (float)_current / _total;
+            int completeWidth = (int)(_width * percent);
 
-            if (_showDetails)
+            // Time elapsed
+            var elapsed = DateTime.Now - _startTime;
+
+            // Animation frame
+            var idx = (int)(DateTime.Now.Ticks / 3000000 % Animation.Length);
+            var animationFrame = _showAnimation ? Animation[idx] : ' ';
+
+            // Build the full progress bar string first
+            string progressBar = $"{_description} [";
+
+            for (int i = 0; i < _width; i++)
             {
-                Console.WriteLine($"Starting {_taskName}...");
-                Console.WriteLine($"Total work items: {_totalTicks}");
-                Console.WriteLine(new string('-', barSize + 20));
+                progressBar += (i < completeWidth) ? "█" : " ";
             }
 
-            // Draw empty progress bar
-            Console.Write("[");
-            Console.Write(new string(' ', barSize));
-            Console.Write("] 0%");
-
-            // Start a timer to refresh the FPS counter independently of progress updates
-            _refreshTimer = new Timer(UpdateFps, null, 1000, 1000);
-        }
-
-        private void UpdateFps(object? state)
-        {
-            if (_currentTick > 0 && !_disposed)
+            // Calculate estimated time remaining if progress is greater than 0
+            string etaString = "";
+            if (percent > 0)
             {
-                // Force a refresh of the display
-                Update(_currentTick);
+                var estimatedTotalTime = TimeSpan.FromTicks((long)(elapsed.Ticks / percent));
+                var eta = estimatedTotalTime - elapsed;
+                etaString = $" ETA: {FormatTimeSpan(eta)}";
             }
+
+            progressBar += $"] {percent:P1} {animationFrame} [{elapsed:hh\\:mm\\:ss}]{etaString}";
+
+            // Move cursor to beginning of line and write the progress bar
+            Console.Write("\r" + progressBar);
+
+            // Calculate current length to track for next update
+            _lastProgressBarLength = progressBar.Length;
+
+            // Make sure we don't add a newline
+            Console.SetCursorPosition(Math.Min(progressBar.Length, Console.BufferWidth - 1), Console.CursorTop);
         }
+    }
 
-        public void Update(int tick)
+    private string FormatTimeSpan(TimeSpan timeSpan)
+    {
+        if (timeSpan.TotalHours >= 1)
+            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m";
+        if (timeSpan.TotalMinutes >= 1)
+            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+        return $"{timeSpan.Seconds}s";
+    }
+
+    public void Dispose()
+    {
+        if (!Console.IsOutputRedirected)
         {
-            _currentTick = tick;
+            // Move to beginning of line
+            Console.Write("\r");
 
-            int percent = (int)Math.Floor((double)_currentTick / _totalTicks * 100);
+            // Clear line by overwriting with spaces
+            Console.Write(new string(' ', _lastProgressBarLength));
 
-            // Only update the display if the percentage changed or every second
-            if (percent == _lastPercent && _currentTick < _totalTicks)
-                return;
+            // Move to beginning again
+            Console.Write("\r");
 
-            _lastPercent = percent;
-
-            int progressChars = (int)Math.Floor((double)_currentTick / _totalTicks * _barSize);
-
-            // Calculate performance metrics
-            TimeSpan elapsed = _stopwatch.Elapsed;
-            _fps = (int)(_currentTick / elapsed.TotalSeconds);
-
-            // Calculate estimated time remaining
-            TimeSpan estimated = TimeSpan.FromSeconds(
-                elapsed.TotalSeconds / _currentTick * (_totalTicks - _currentTick));
-
-            string timeRemaining = _currentTick > 0
-                ? $"ETA: {FormatTimeSpan(estimated)}"
-                : "Calculating...";
-
-            // Reset cursor to start of line and redraw
-            ClearLastLine();
-            Console.Write("[");
-            Console.Write(new string('#', progressChars));
-            Console.Write(new string(' ', _barSize - progressChars));
-            Console.Write($"] {percent,3}% - {_fps,3} rows/sec - {timeRemaining}");
-
-            // If complete
-            if (_currentTick >= _totalTicks)
-            {
-                _refreshTimer.Dispose();
-                Console.WriteLine();
-                Console.WriteLine($"{_taskName} completed in {FormatTimeSpan(elapsed)}");
-            }
-        }
-
-        private static void ClearLastLine()
-        {
-            Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write(new string(' ', Console.BufferWidth));
-            Console.SetCursorPosition(0, Console.CursorTop);
-        }
-
-        private static string FormatTimeSpan(TimeSpan ts)
-        {
-            if (ts.TotalHours >= 1)
-                return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
-            if (ts.TotalMinutes >= 1)
-                return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
-            return $"{ts.Seconds}s";
-        }
-
-        public void Dispose()
-        {
-            if (!_disposed)
-            {
-                _refreshTimer?.Dispose();
-
-                // Make sure we end with a new line if not already done
-                if (_currentTick < _totalTicks)
-                    Console.WriteLine();
-
-                _disposed = true;
-            }
+            // Write final progress
+            var elapsed = DateTime.Now - _startTime;
+            Console.WriteLine("{0} completed in {1:hh\\:mm\\:ss}", _description, elapsed);
         }
     }
 }

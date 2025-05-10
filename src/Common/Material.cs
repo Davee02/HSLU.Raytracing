@@ -7,9 +7,9 @@ public struct Material(Color diffuseColor, float reflectivity = 0f, float shinin
 
     public Color SpecularColor { get; set; } = Color.White;
 
-    public Color AmbientColor { get; set; } = Color.Black;
+    public Color AmbientColor { get; set; } = Color.White;
 
-    public Color EmissiveColor { get; set; } = Color.Black;
+    public Color EmissiveColor { get; set; } = Color.White;
 
     public float Reflectivity { get; set; } = reflectivity;
 
@@ -18,6 +18,11 @@ public struct Material(Color diffuseColor, float reflectivity = 0f, float shinin
     public float Transparency { get; set; } = transparency;
 
     public float RefractionIndex { get; set; } = refractionIndex;
+
+    public static Material Default => new(Color.White, 0f, 0f, 0f, RefractiveIndices.Vacuum)
+    {
+        Name = "Default"
+    };
 }
 
 public static class RefractiveIndices

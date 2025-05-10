@@ -9,8 +9,6 @@ namespace Common
 {
     public struct Scene(Vector2 imageSize) : IDisposable
     {
-        private BVH.BVH? bvh = null;
-
         public RenderSettings RenderSettings { get; set; } = new();
 
         public Vector2 ImageSize { get; } = imageSize;
@@ -33,14 +31,14 @@ namespace Common
 
         public Image<Rgba32> Bitmap { get; } = new Image<Rgba32>((int)imageSize.X, (int)imageSize.Y);
 
-        public readonly BVH.BVH? BVH => bvh;
+        public BVH.BVH? BVH { get; private set; } = null;
 
         public void BuildBVH()
         {
-            bvh = new BVH.BVH(TraceableObjects);
+            BVH = new BVH.BVH(TraceableObjects);
         }
 
-        public readonly void AddSphere(Vector3 center, float radius, Material color) 
+        public readonly void AddSphere(Vector3 center, float radius, Material color)
         {
             var sphere = new Sphere(center, radius, color);
             Spheres.Add(sphere);
@@ -67,13 +65,12 @@ namespace Common
 
         public readonly void AddTriangles(IEnumerable<Triangle> triangles)
         {
-            foreach(var triangle in triangles)
+            foreach (var triangle in triangles)
             {
                 TraceableObjects.Add(triangle);
                 Triangles.Add(triangle);
             }
         }
-
 
         public readonly void AddRectangle(Vector3 position, Vector3 normal, Vector3 up, float width, float height, float thickness, Material material)
         {
@@ -98,11 +95,6 @@ namespace Common
             }
         }
 
-        public Color ComputeAmbientColor(Material objectMaterial)
-        {
-            return AmbientLight.Color * AmbientLight.AttenuationC * objectMaterial.DiffuseColor;
-        }
-
         public void Dispose()
         {
             Bitmap?.Dispose();
@@ -118,7 +110,7 @@ namespace Common
             return sb.ToString();
         }
 
-        public void Render()
+        public void Render(RenderProgressCallback? progressCallback = null)
         {
             Console.WriteLine(PrintInfo());
 
@@ -128,40 +120,42 @@ namespace Common
 
             int totalRows = Bitmap.Height / RenderSettings.LineSkipStep;
 
+            // Create progress bar with the progress callback
             using var progressBar = new EnhancedProgressBar(
                 totalRows,
                 $"Rendering {ImageSize.X}x{ImageSize.Y} image",
-                80,
-                true);
+                50,
+                showAnimation: true,
+                progressCallback);
 
 #if DEBUG
-    int rowsCompleted = 0;
+            int rowsCompleted = 0;
 
-    for (int y = 0; y < Bitmap.Height; y++)
-    {
-        if (y % RenderSettings.LineSkipStep != 0)
-        {
-            continue;
-        }
+            for (int y = 0; y < Bitmap.Height; y++)
+            {
+                if (y % RenderSettings.LineSkipStep != 0)
+                {
+                    continue;
+                }
 
-        for (int x = 0; x < Bitmap.Width; x++)
-        {
-            var rays = Camera.GetRaysForPixel(x, y).ToArray();
-            var ray = rays[0];
+                for (int x = 0; x < Bitmap.Width; x++)
+                {
+                    var rays = Camera.GetRaysForPixel(x, y).ToArray();
+                    var ray = rays[0];
 
-            var pixelColor = Tracer.TraceRay(ray, this, 0, RenderSettings.MaxRecursionDepth);
-            Bitmap[x, y] = pixelColor.ToRgba32();
-        }
-        
-        rowsCompleted++;
-        progressBar.Update(rowsCompleted);
-    }
+                    var pixelColor = Tracer.TraceRay(ray, this, 0, RenderSettings.MaxRecursionDepth);
+                    Bitmap[x, y] = pixelColor.ToRgba32();
+                }
+
+                rowsCompleted++;
+
+                progressBar.Update(rowsCompleted);
+            }
 #else
             var thisScene = this; // needed for the lambda function
 
             // Use thread-safe counter for parallel processing
             int completedRows = 0;
-            object lockObj = new();
 
             Bitmap.Mutate(c => c.ProcessPixelRowsAsVector4((row, point) =>
             {
@@ -191,10 +185,11 @@ namespace Common
                 if (point.Y % thisScene.RenderSettings.LineSkipStep == 0)
                 {
                     int newCompletedRows = Interlocked.Increment(ref completedRows);
+
                     progressBar.Update(newCompletedRows);
                 }
             }));
-#endif
+#endif        
         }
     }
 }

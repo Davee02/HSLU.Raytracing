@@ -5,11 +5,11 @@ using System.Numerics;
 namespace Common;
 public static class ObjImporter
 {
-    public static IEnumerable<Material> LoadMaterialsFromFile(string filePath, Func<Material, Material>? materialReplacer = null)
+    public static IEnumerable<Material> LoadMaterialsFromFile(string filePath)
     {
         try
         {
-            var currentMaterial = new Material(Color.White);
+            var currentMaterial = Material.Default;
             bool materialStarted = false;
             var materials = new List<Material>();
 
@@ -29,12 +29,11 @@ public static class ObjImporter
                     case "newmtl":
                         if (materialStarted)
                         {
-                            currentMaterial = materialReplacer?.Invoke(currentMaterial) ?? currentMaterial;
                             materials.Add(currentMaterial);
                         }
 
                         materialStarted = true;
-                        currentMaterial = new Material(Color.White);
+                        currentMaterial = Material.Default;
                         currentMaterial.Name = parts[1];
                         break;
 
@@ -92,7 +91,6 @@ public static class ObjImporter
 
             if (materialStarted)
             {
-                currentMaterial = materialReplacer?.Invoke(currentMaterial) ?? currentMaterial;
                 materials.Add(currentMaterial);
             }
 
@@ -105,7 +103,7 @@ public static class ObjImporter
         }
     }
 
-    public static IEnumerable<Triangle> LoadFromFile(string objFilePath, Func<Material, Material>? materialReplacer = null)
+    public static IEnumerable<Triangle> LoadFromFile(string objFilePath)
     {
         if (string.IsNullOrEmpty(objFilePath) || !File.Exists(objFilePath))
         {
@@ -142,7 +140,7 @@ public static class ObjImporter
                             string mtlFilePath = Path.Combine(objDirectory, parts[1]);
                             if (File.Exists(mtlFilePath))
                             {
-                                var loadedMaterials = LoadMaterialsFromFile(mtlFilePath, materialReplacer);
+                                var loadedMaterials = LoadMaterialsFromFile(mtlFilePath);
                                 materials = loadedMaterials.ToDictionary(m => m.Name, m => m);
                             }
                             else
@@ -202,6 +200,7 @@ public static class ObjImporter
                             else if (faceIndices.Count > 3) // Polygon with more than 3 vertices
                             {
                                 throw new NotImplementedException("Polygon triangulation is not implemented. Please provide a triangulated mesh.");
+
                             }
                         }
                         break;
@@ -272,3 +271,4 @@ public static class ObjImporter
         return new Triangle(origin, v, w, normal, material);
     }
 }
+

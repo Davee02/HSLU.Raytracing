@@ -1,8 +1,6 @@
 ﻿using System.Numerics;
-
 namespace Common;
-
-public readonly struct Camera
+public struct Camera
 {
     public int SampleCount { get; } = 1;
 
@@ -31,19 +29,13 @@ public readonly struct Camera
 
     public Vector2 ImageCenter { get; }
 
-    /// <summary>
-    /// Creates a camera with specific position, look-at point, up vector, and view settings
-    /// </summary>
-    public Camera(Vector3 position, Vector3 lookAt, Vector3 up, float fieldOfView, float imageWidth, float imageHeight, int sampleCount = 1)
+    private Camera(Vector3 position, Vector3 direction, Vector3 up, Vector3 lookAt, float fieldOfView, float imageWidth, float imageHeight, int sampleCount)
     {
         SampleCount = sampleCount;
-
         Position = position;
-        FieldOfView = fieldOfView;
+        Direction = direction;
         LookAt = lookAt;
-
-        // Calculate and normalize direction vector
-        Direction = Vector3.Normalize(lookAt - position);
+        FieldOfView = fieldOfView;
 
         // Calculate and normalize right vector using cross product
         Right = Vector3.Normalize(Vector3.Cross(Direction, up));
@@ -64,11 +56,23 @@ public readonly struct Camera
         ImageCenter = new Vector2(imageWidth / 2.0f, imageHeight / 2.0f);
     }
 
+    public static Camera FromLookAt(Vector3 position, Vector3 lookAt, Vector3 up, float fieldOfView, float imageWidth, float imageHeight, int sampleCount = 1)
+    {
+        Vector3 direction = Vector3.Normalize(lookAt - position);
+        return new Camera(position, direction, up, lookAt, fieldOfView, imageWidth, imageHeight, sampleCount);
+    }
+
+    public static Camera FromDirection(Vector3 position, Vector3 direction, Vector3 up, float fieldOfView, float imageWidth, float imageHeight, int sampleCount = 1)
+    {
+        Vector3 normalizedDirection = Vector3.Normalize(direction);
+        Vector3 lookAt = position + normalizedDirection; // Virtual lookAt point
+        return new Camera(position, normalizedDirection, up, lookAt, fieldOfView, imageWidth, imageHeight, sampleCount);
+    }
 
     /// <summary>
     /// Gets a ray for a specific pixel
     /// </summary>
-    public IEnumerable<Ray> GetRaysForPixel(int pixelX, int pixelY)
+    public readonly IEnumerable<Ray> GetRaysForPixel(int pixelX, int pixelY)
     {
         for (int i = 0; i < SampleCount; i++)
         {
@@ -78,11 +82,9 @@ public readonly struct Camera
             {
                 jitter = GetRandomVectorInUnitSquare();
             }
-
             // Convert pixel coordinates to world coordinates
             float xworld = ((pixelX + 0.5f + jitter.X) - ImageCenter.X) * (ViewWidth / ImageWidth);
             float yworld = (ImageCenter.Y - (pixelY + 0.5f + jitter.Y)) * (ViewHeight / ImageHeight); // Invert Y axis
-
             // Calculate ray origin and direction
             Vector3 rayOrigin = Position;
             Vector3 rayDirection = Vector3.Normalize(
@@ -90,7 +92,6 @@ public readonly struct Camera
                 (xworld * Right) +
                 (yworld * Up)
             );
-
             yield return new Ray(rayOrigin, rayDirection);
         }
     }
