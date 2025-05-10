@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 const string filePath = "rastered_image.png";
 
-var scene = SceneCreator.CreateContestScene();
+using var scene = SceneCreator.CreateFinalScene();
 
 scene.Render();
 
@@ -12,5 +12,3 @@ await scene.Bitmap.SaveAsPngAsync(filePath);
 
 //Open the image with the default image viewer
 Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
-
-scene.Dispose();

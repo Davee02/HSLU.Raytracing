@@ -4,6 +4,54 @@ using System.Numerics;
 namespace Common;
 public static class SceneCreator
 {
+    public static Scene CreateChurchScene()
+    {
+        var outputDimensions = new Vector2(1280, 720);
+        var loc = new Vector3(0, 0, -100);
+
+        var scene = new Scene(outputDimensions)
+        {
+            DiffusedLights =
+            [
+                new Light
+                {
+                    Color = new Common.Color(1 ,1 ,1),
+                    Position = loc,
+                    //AttenuationA = 1e-6f,
+                    AttenuationC = 1f,
+                },
+                new Light
+                {
+                    Color = new Common.Color(1 ,1 ,1),
+                    Position = new Vector3(0, 120, -100),
+                    //AttenuationA = 1e-6f,
+                    AttenuationC = 1f,
+                },
+            ],
+            AmbientLight = new Light
+            {
+                Color = new Common.Color(1, 1, 1),
+                AttenuationC = 0.2f
+            },
+            BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
+            RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 5),
+        };
+
+        scene.Camera = Camera.FromLookAt(
+            position: loc,
+            lookAt: new Vector3(0, 0, 1),
+            up: new Vector3(0, -1, 0),
+            imageWidth: scene.ImageSize.X,
+            imageHeight: scene.ImageSize.Y,
+            fieldOfView: 60,
+            sampleCount: 1);
+
+        var triangles = ObjImporter.LoadFromFile(@"C:\Users\David\Downloads\church\church.obj");
+        scene.AddTriangles(triangles);
+
+        return scene;
+    }
+
     public static Scene CreateContestScene()
     {
         var outputDimensions = new Vector2(1280, 720);
@@ -29,7 +77,7 @@ public static class SceneCreator
             RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 5),
         };
 
-        scene.Camera = new Camera(
+        scene.Camera = Camera.FromLookAt(
             position: new Vector3(outputDimensions.X / 2, 600, -10),
             lookAt: new Vector3(outputDimensions.X / 2, 600, 0),
             up: new Vector3(0, -1, 0),
@@ -38,19 +86,7 @@ public static class SceneCreator
             fieldOfView: 60,
             sampleCount: 1);
 
-        var triangles = ObjImporter.LoadFromFile(@"C:\Users\David\Downloads\suzanne\Untitled.obj", mat =>
-        {
-            if (mat.Name == "Suzanne")
-            {
-                mat.Transparency = 0.9f;
-                mat.Reflectivity = 0.8f;
-                mat.RefractionIndex = 1.5f;
-                mat.DiffuseColor = Color.Green;
-                mat.AmbientColor = Color.Green;
-            }
-
-            return mat;
-        });
+        var triangles = ObjImporter.LoadFromFile(@"C:\Users\David\Downloads\suzanne\Untitled.obj");
         scene.AddTriangles(triangles);
       
 
@@ -59,7 +95,7 @@ public static class SceneCreator
 
     public static Scene CreateFinalScene()
     {
-        var outputDimensions = new Vector2(1280, 720);
+        var outputDimensions = new Vector2(1920, 1080);
 
         float roomSize = 800f;
         float halfSize = roomSize / 2f;
@@ -73,15 +109,15 @@ public static class SceneCreator
                 {
                     Color = new Common.Color(1, 0.9f, 0.8f),
                     Position = new Vector3(outputDimensions.X / 2, 500, -250),
-                    AttenuationA = 1e-6f,
-                    AttenuationC = 1f,
+                    AttenuationA = 2e-6f,
+                    AttenuationC = 0.8f,
                 },
                 new Light
                 {
                     Color = Common.Color.White,
                     Position = new Vector3(roomCenter.X, roomCenter.Y - 200, 0),
-                    AttenuationA = 1e-6f,
-                    AttenuationC = 0.7f,
+                    AttenuationA = 2e-6f,
+                    AttenuationC = 0.6f,
                 }
             ],
             AmbientLight = new Light
@@ -93,7 +129,7 @@ public static class SceneCreator
             RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 5),
         };
 
-        scene.Camera = new Camera(
+        scene.Camera = Camera.FromLookAt(
             position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - (2 * halfSize)),
             lookAt: roomCenter,
             up: new Vector3(0, -1, 0),
@@ -105,14 +141,12 @@ public static class SceneCreator
         var triangles = ObjImporter.LoadFromFile(@"C:\Users\David\Downloads\final_scene_exported\Untitled.obj");
         scene.AddTriangles(triangles);
 
-        var redMaterial = new Material(Common.Color.Red, 0.2f, 20, 0f);
         var greenMaterial = new Material(Common.Color.Green, 0.2f, 20, 0f);
         var whiteMaterial = new Material(Common.Color.White, 0f, 20, 0f);
-        var glassMaterial = new Material(new Common.Color(0.8f, 0.8f, 1.0f), 0.1f, 50, 0.8f, 10.5f);
         var cyanMaterial = new Material(Common.Color.Cyan, 0.2f, 20, 0f);
         var yellowMaterial = new Material(Common.Color.Yellow, 0.2f, 20, 0f);
 
-        scene.AddSphere(new Vector3(550, 250, 300), 150, new Material(new Common.Color(0f, 0.1f, 0f), 0.3f, 20, transparency: 0.95f, refractionIndex: 6f));
+        scene.AddSphere(new Vector3(550, 270, 300), 150, new Material(new Common.Color(0f, 0.1f, 0f), 0.3f, 20, transparency: 0.95f, refractionIndex: 6f));
         scene.AddSphere(new Vector3(300, 370, 250), 50, cyanMaterial);
 
         // Right wall (yellow)
@@ -160,7 +194,7 @@ public static class SceneCreator
         float halfSize = roomSize / 2f;
         var roomCenter = new Vector3(1000, 500, 500);
 
-        scene.Camera = new Camera(
+        scene.Camera = Camera.FromLookAt(
             position: new Vector3(roomCenter.X, roomCenter.Y, roomCenter.Z - (2 * halfSize)),
             lookAt: new Vector3(1000, 500, 500),
             up: new Vector3(0, -1, 0),
@@ -277,7 +311,7 @@ public static class SceneCreator
         var cameraPosition = new Vector3(500, 150, -650);
         var lookAtPoint = new Vector3(500, 200, 400);
 
-        scene.Camera = new Camera(
+        scene.Camera = Camera.FromLookAt(
             position: cameraPosition,
             lookAt: lookAtPoint,
             up: new Vector3(0, -1, 0),
