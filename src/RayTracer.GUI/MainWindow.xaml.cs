@@ -17,7 +17,7 @@ public partial class MainWindow : Window
 
     private Vector3 cameraPosition = new(0, 0, -100);
     private Vector3 cameraRotation = new(0, 0, 0);
-    private Scene scene = SceneCreator.CreateFinalScene();
+    private Scene scene = SceneCreator.CreateChurchScene();
     private float cameraFOVDegrees = 60.0f;
 
     // Flag to track if rendering is in progress

@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 const string filePath = "rastered_image.png";
 
-using var scene = SceneCreator.CreateFinalScene();
+using var scene = SceneCreator.CreateChurchScene();
 
 scene.Render();
 
