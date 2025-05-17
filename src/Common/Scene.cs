@@ -144,6 +144,7 @@ namespace Common
                     var ray = rays[0];
 
                     var pixelColor = Tracer.TraceRay(ray, this, 0, RenderSettings.MaxRecursionDepth);
+                    pixelColor = pixelColor.Normalize();
                     Bitmap[x, y] = pixelColor.ToRgba32();
                 }
 
@@ -177,6 +178,7 @@ namespace Common
                     }
 
                     pixelColor /= rays.Length;
+                    pixelColor = pixelColor.Normalize();
 
                     row[x] = pixelColor.ToVector4();
                 }
