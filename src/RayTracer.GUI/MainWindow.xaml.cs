@@ -15,10 +15,10 @@ public partial class MainWindow : Window
     const float movementStep = 50;
     const float rotationStep = MathF.PI / 10;
 
-    private Vector3 cameraPosition = new(0, 0, -100);
-    private Vector3 cameraRotation = new(0, 0, 0);
+    private Vector3 cameraPosition = new(30, 220, -50);
+    private Vector3 cameraRotation = new(0, -0.62f, 0);
     private Scene scene = SceneCreator.CreateChurchScene();
-    private float cameraFOVDegrees = 60.0f;
+    private float cameraFOVDegrees = 90.0f;
 
     // Flag to track if rendering is in progress
     private bool isRendering = false;

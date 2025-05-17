@@ -6,8 +6,10 @@ public static class SceneCreator
 {
     public static Scene CreateChurchScene()
     {
-        var outputDimensions = new Vector2(1280, 720);
-        var loc = new Vector3(0, 220, 100);
+        var outputDimensions = new Vector2(3840, 2160);
+        var camLoc = new Vector3(30, 220, -50);
+        var cameraRotation = new Vector3(0, -0.62f, 0);
+        var lightLoc = new Vector3(7, 230, -45);
 
         var scene = new Scene(outputDimensions)
         {
@@ -15,40 +17,54 @@ public static class SceneCreator
             [
                 new Light
                 {
-                    Color = new Common.Color(1 ,1 ,1),
-                    Position = loc,
-                    //AttenuationA = 1e-6f,
-                    AttenuationC = 1f,
-                },
-                new Light
-                {
-                    Color = new Common.Color(1 ,1 ,1),
-                    Position = new Vector3(0, 120, -100),
-                    AttenuationA = 1e-6f,
-                    AttenuationC = 0.3f,
-                },
+                    Color = new Common.Color(0.4f ,0.4f ,0.4f),
+                    Position = lightLoc,
+                    AttenuationA = 2e-6f,
+                    AttenuationC = 0.01f/2,
+                }
             ],
             AmbientLight = new Light
             {
-                Color = new Common.Color(1, 1, 1),
-                AttenuationC = 0.2f
+                Color = new Common.Color(0.4f, 0.4f, 0.4f),
+                AttenuationC = 0.02f
             },
             BackgroundColor = new Common.Color(0.1f, 0.1f, 0.2f),
-            RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 3),
+            RenderSettings = new RenderSettings(lineSkipStep: 1, maxRecursionDepth: 5),
         };
 
-        var cameraRotation = new Vector3(0, MathF.PI, 0);
         var cameraRotationMatrix = Matrix4x4.CreateFromYawPitchRoll(cameraRotation.Y, cameraRotation.X, cameraRotation.Z);
         scene.Camera = Camera.FromDirection(
-            position: loc,
+            position: camLoc,
             direction: Vector3.Transform(new Vector3(0, 0, 1), cameraRotationMatrix),
             up: Vector3.Transform(new Vector3(0, -1, 0), cameraRotationMatrix),
             imageWidth: scene.ImageSize.X,
             imageHeight: scene.ImageSize.Y,
-            fieldOfView: 60,
-            sampleCount: 1);
+            fieldOfView: 90,
+            sampleCount: 5);
 
-        var triangles = ObjImporter.LoadFromFile(@"../../../../../scenes/church/church.obj");
+        const string suzanneMaterialName = "Suzanne";
+        const string floorMaterialName = "Floor";
+        const string columnMaterialName = "Column";
+
+        var suzanneMaterial = new Material(new Color(0, 0.1f, 0), reflectivity: 0, shininess: 10, transparency: 0.9f, refractionIndex: 1.0f) 
+        {
+            Name = suzanneMaterialName,
+            AmbientColor = new Color(0, 0, 0),        
+        };
+
+        var triangles = ObjImporter.LoadFromFile(@"../../../../../scenes/church/church.obj", mat =>
+        {
+            if (mat.Name == suzanneMaterialName)
+            {
+                return suzanneMaterial;
+            }
+            else if (mat.Name is floorMaterialName or columnMaterialName)
+            {
+                mat.Reflectivity = 0.8f;
+            }
+
+            return mat;
+        });
         scene.AddTriangles(triangles);
 
         return scene;

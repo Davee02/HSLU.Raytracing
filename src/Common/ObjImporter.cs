@@ -5,7 +5,7 @@ using System.Numerics;
 namespace Common;
 public static class ObjImporter
 {
-    public static IEnumerable<Material> LoadMaterialsFromFile(string filePath)
+    public static IEnumerable<Material> LoadMaterialsFromFile(string filePath, Func<Material, Material>? materialReplacer = null)
     {
         try
         {
@@ -94,6 +94,15 @@ public static class ObjImporter
                 materials.Add(currentMaterial);
             }
 
+            if (materialReplacer != null)
+            {
+                for (int i = 0; i < materials.Count; i++)
+                {
+                    var material = materials[i];
+                    materials[i] = materialReplacer(material);
+                }
+            }
+
             return materials;
         }
         catch (Exception ex)
@@ -103,7 +112,7 @@ public static class ObjImporter
         }
     }
 
-    public static IEnumerable<Triangle> LoadFromFile(string objFilePath)
+    public static IEnumerable<Triangle> LoadFromFile(string objFilePath, Func<Material, Material>? materialReplacer = null)
     {
         if (string.IsNullOrEmpty(objFilePath) || !File.Exists(objFilePath))
         {
@@ -140,7 +149,7 @@ public static class ObjImporter
                             string mtlFilePath = Path.Combine(objDirectory, parts[1]);
                             if (File.Exists(mtlFilePath))
                             {
-                                var loadedMaterials = LoadMaterialsFromFile(mtlFilePath);
+                                var loadedMaterials = LoadMaterialsFromFile(mtlFilePath, materialReplacer);
                                 materials = loadedMaterials.ToDictionary(m => m.Name, m => m);
                             }
                             else
